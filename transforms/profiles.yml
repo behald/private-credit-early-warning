@@ -1,0 +1,7 @@
+private_credit_radar:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../data/processed/warehouse.duckdb"
+      threads: 4

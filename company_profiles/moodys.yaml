@@ -1,0 +1,14 @@
+name: "Moody's"
+slug: moodys
+cluster: Capital Markets and Credit
+product_focus: "credit ratings, research, and risk analysis for capital markets"
+customers: "banks, asset managers, insurers, corporations"
+angle: "the unrated borrower risk signal -- most BDC borrowers are unrated middle-market companies, and cross-lender mark dispersion reveals credit deterioration that traditional ratings do not capture"
+highlight_views:
+  - watchlist
+  - market_overview
+  - borrower_drilldown
+data_slice: {}
+sources:
+  - "https://www.moodys.com/research/Moodys-Private-Credit-Data-Alliance"
+  - "https://www.fsb.org/2024/12/global-monitoring-report-on-non-bank-financial-intermediation-2024/"

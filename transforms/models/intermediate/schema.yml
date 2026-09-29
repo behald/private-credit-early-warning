@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: int_quarterly_panel
+    description: "Quarterly panel: borrower x lender x quarter with aggregated position data"
+    columns:
+      - name: canonical_borrower_id
+        tests:
+          - not_null
+      - name: lender_cik
+        tests:
+          - not_null
+      - name: quarter
+        tests:
+          - not_null
+      - name: fair_value
+        tests:
+          - not_null

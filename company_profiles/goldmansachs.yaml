@@ -1,0 +1,15 @@
+name: Goldman Sachs
+slug: goldmansachs
+cluster: Capital Markets and Credit
+product_focus: "investment banking, asset management, runs Goldman Sachs BDC (GSBD)"
+customers: "institutional clients, corporations, high-net-worth individuals"
+angle: "peer comparison for GSBD against other BDCs, marking behavior analysis, and the data pipeline for portfolio monitoring"
+highlight_views:
+  - lender_comparison
+  - borrower_drilldown
+  - watchlist
+data_slice:
+  include_lender: "GSBD"
+sources:
+  - "https://www.goldmansachsbdc.com"
+  - "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001572090"

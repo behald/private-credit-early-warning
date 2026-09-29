@@ -1,0 +1,32 @@
+version: 2
+
+sources:
+  - name: edgar
+    tables:
+      - name: raw_soi_positions
+      - name: raw_filings
+
+models:
+  - name: stg_soi_positions
+    description: "Cleaned SOI positions from SEC EDGAR XBRL filings"
+    columns:
+      - name: accession_number
+        tests:
+          - not_null
+      - name: borrower_name_raw
+        tests:
+          - not_null
+      - name: fair_value
+        tests:
+          - not_null
+      - name: quarter
+        tests:
+          - not_null
+
+  - name: stg_filings
+    description: "Filing metadata from SEC EDGAR"
+    columns:
+      - name: accession_number
+        tests:
+          - not_null
+          - unique

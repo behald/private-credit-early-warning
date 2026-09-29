@@ -1,0 +1,17 @@
+name: private_credit_radar
+version: "0.1.0"
+config-version: 2
+
+profile: private_credit_radar
+
+model-paths: ["models"]
+test-paths: ["tests"]
+
+models:
+  private_credit_radar:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table

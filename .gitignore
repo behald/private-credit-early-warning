@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment secrets
+.env
+
+# Raw SEC EDGAR downloads (large, re-downloadable)
+data/raw/*.json
+data/raw/*/
+
+# DuckDB WAL files
+*.wal
+
+# Dagster
+.dagster/
+
+# Logs
+*.log

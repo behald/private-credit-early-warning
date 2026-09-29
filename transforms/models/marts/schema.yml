@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: mart_signals
+    description: "Quarterly signals panel with mark drift, PIK migration, cross-lender dispersion"
+    columns:
+      - name: canonical_borrower_id
+        tests:
+          - not_null
+      - name: lender_cik
+        tests:
+          - not_null
+      - name: quarter
+        tests:
+          - not_null
+      - name: mark
+        description: "Fair value / cost ratio"
+
+  - name: mart_watchlist
+    description: "Early warning watchlist: borrowers showing distress signals"
+    columns:
+      - name: canonical_borrower_id
+        tests:
+          - not_null
+      - name: quarter
+        tests:
+          - not_null
+      - name: avg_mark
+        tests:
+          - not_null
+
+  - name: mart_lender_comparison
+    description: "Portfolio-level metrics per lender per quarter"
+    columns:
+      - name: lender_cik
+        tests:
+          - not_null
+      - name: bdc_name
+        tests:
+          - not_null
+
+  - name: mart_borrower_summary
+    description: "Lifetime summary per canonical borrower"
+    columns:
+      - name: canonical_borrower_id
+        tests:
+          - not_null
+          - unique

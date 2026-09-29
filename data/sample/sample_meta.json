@@ -1,0 +1,13 @@
+{
+  "source": "Synthetic fixture based on SEC EDGAR BDC filing structure",
+  "bdcs_included": ["arcc", "gsbd", "bxsl"],
+  "record_count": 7,
+  "note": "SYNTHETIC SAMPLE for CI/testing. All borrower names are fictitious. Real data comes from make data.",
+  "scenarios_covered": [
+    "Same borrower across multiple lenders with name variants (entity resolution test)",
+    "Mark below par (fair_value < cost)",
+    "PIK investment type",
+    "Non-accrual investment",
+    "Cross-lender mark dispersion (Acme: 0.98, 0.95, 1.0 across three lenders)"
+  ]
+}

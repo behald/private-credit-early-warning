@@ -1,0 +1,31 @@
+{
+  "model_type": "lightgbm",
+  "features": [
+    "mark",
+    "mark_drift",
+    "pik_flag",
+    "non_accrual_flag",
+    "num_lenders",
+    "mark_dispersion",
+    "lender_mark_vs_avg",
+    "pik_migration",
+    "par_migration",
+    "avg_mark_across_lenders"
+  ],
+  "pr_auc": 0.7797,
+  "precision_at_50": 0.92,
+  "val_size": 13957,
+  "val_positive_rate": 0.0417,
+  "feature_importance": {
+    "mark": 489748.82229173183,
+    "avg_mark_across_lenders": 88073.93399190903,
+    "mark_drift": 28647.021426796913,
+    "mark_dispersion": 18051.077780485153,
+    "num_lenders": 12208.061150431633,
+    "lender_mark_vs_avg": 12089.755900740623,
+    "pik_flag": 5036.639793634415,
+    "pik_migration": 1298.4932022094727,
+    "par_migration": 58.480210304260254,
+    "non_accrual_flag": 0.0
+  }
+}

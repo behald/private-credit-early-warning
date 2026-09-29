@@ -1,0 +1,365 @@
+[
+  {
+    "experiment": "A: newly distressed (crosses 0.80)",
+    "per_quarter": [
+      {
+        "test_quarter": "2023-04-01",
+        "rows": 6875,
+        "positives": 64,
+        "base_rate": 0.0093,
+        "ap_rule": 0.246,
+        "ap_rule_multi": 0.219,
+        "ap_old": 0.204,
+        "ap_old_multi": 0.286,
+        "ap_new": 0.163,
+        "ap_new_multi": 0.142,
+        "ap_v2": 0.15,
+        "ap_v2_multi": 0.125
+      },
+      {
+        "test_quarter": "2023-07-01",
+        "rows": 7813,
+        "positives": 70,
+        "base_rate": 0.009,
+        "ap_rule": 0.206,
+        "ap_rule_multi": 0.28,
+        "ap_old": 0.127,
+        "ap_old_multi": 0.157,
+        "ap_new": 0.166,
+        "ap_new_multi": 0.159,
+        "ap_v2": 0.137,
+        "ap_v2_multi": 0.133
+      },
+      {
+        "test_quarter": "2023-10-01",
+        "rows": 8612,
+        "positives": 85,
+        "base_rate": 0.0099,
+        "ap_rule": 0.13,
+        "ap_rule_multi": 0.108,
+        "ap_old": 0.139,
+        "ap_old_multi": 0.11,
+        "ap_new": 0.158,
+        "ap_new_multi": 0.148,
+        "ap_v2": 0.156,
+        "ap_v2_multi": 0.149
+      },
+      {
+        "test_quarter": "2024-01-01",
+        "rows": 9282,
+        "positives": 116,
+        "base_rate": 0.0125,
+        "ap_rule": 0.206,
+        "ap_rule_multi": 0.231,
+        "ap_old": 0.174,
+        "ap_old_multi": 0.191,
+        "ap_new": 0.251,
+        "ap_new_multi": 0.314,
+        "ap_v2": 0.222,
+        "ap_v2_multi": 0.298
+      },
+      {
+        "test_quarter": "2024-04-01",
+        "rows": 9732,
+        "positives": 90,
+        "base_rate": 0.0092,
+        "ap_rule": 0.353,
+        "ap_rule_multi": 0.414,
+        "ap_old": 0.263,
+        "ap_old_multi": 0.29,
+        "ap_new": 0.242,
+        "ap_new_multi": 0.257,
+        "ap_v2": 0.255,
+        "ap_v2_multi": 0.275
+      }
+    ],
+    "pooled_ap": {
+      "s_rule": 0.211,
+      "s_old": 0.169,
+      "s_new": 0.188,
+      "s_v2": 0.173
+    },
+    "manager_level_ap": {
+      "s_rule": 0.226,
+      "s_old": 0.168,
+      "s_new": 0.19,
+      "s_v2": 0.174
+    },
+    "new_minus_rule": [
+      -0.022,
+      -0.055,
+      0.003
+    ],
+    "new_minus_old": [
+      0.019,
+      -0.007,
+      0.039
+    ],
+    "v2_minus_new": [
+      -0.015,
+      -0.027,
+      -0.004
+    ],
+    "v2_minus_rule": [
+      -0.038,
+      -0.071,
+      -0.01
+    ],
+    "pluralsight": [
+      {
+        "quarter": "2023-04-01",
+        "lenders": 8,
+        "lenders_hit_next_q": 0,
+        "median_pct_rank_new": 0.384,
+        "median_pct_rank_v2": 0.361,
+        "median_pct_rank_rule": 0.634
+      },
+      {
+        "quarter": "2023-07-01",
+        "lenders": 10,
+        "lenders_hit_next_q": 0,
+        "median_pct_rank_new": 0.512,
+        "median_pct_rank_v2": 0.305,
+        "median_pct_rank_rule": 0.837
+      },
+      {
+        "quarter": "2023-10-01",
+        "lenders": 12,
+        "lenders_hit_next_q": 0,
+        "median_pct_rank_new": 0.822,
+        "median_pct_rank_v2": 0.826,
+        "median_pct_rank_rule": 0.868
+      },
+      {
+        "quarter": "2024-01-01",
+        "lenders": 9,
+        "lenders_hit_next_q": 9,
+        "median_pct_rank_new": 0.941,
+        "median_pct_rank_v2": 0.96,
+        "median_pct_rank_rule": 0.959
+      }
+    ],
+    "top_features": {
+      "mark": 7176,
+      "avg_mark_across_lenders": 7015,
+      "min_mark": 6438,
+      "interest_rate": 2934,
+      "spread": 2704,
+      "min_mark_drift": 2022,
+      "mark_dispersion": 1896,
+      "min_mark_change_2q": 1868,
+      "mark_drift_2q": 1714,
+      "mark_drift": 1682
+    }
+  },
+  {
+    "experiment": "B: big markdown next quarter (>= 0.05)",
+    "per_quarter": [
+      {
+        "test_quarter": "2023-04-01",
+        "rows": 6875,
+        "positives": 225,
+        "base_rate": 0.0327,
+        "ap_rule": 0.083,
+        "ap_rule_multi": 0.072,
+        "ap_old": 0.131,
+        "ap_old_multi": 0.083,
+        "ap_new": 0.134,
+        "ap_new_multi": 0.084,
+        "ap_v2": 0.135,
+        "ap_v2_multi": 0.089
+      },
+      {
+        "test_quarter": "2023-07-01",
+        "rows": 7813,
+        "positives": 231,
+        "base_rate": 0.0296,
+        "ap_rule": 0.075,
+        "ap_rule_multi": 0.088,
+        "ap_old": 0.142,
+        "ap_old_multi": 0.115,
+        "ap_new": 0.136,
+        "ap_new_multi": 0.108,
+        "ap_v2": 0.13,
+        "ap_v2_multi": 0.105
+      },
+      {
+        "test_quarter": "2023-10-01",
+        "rows": 8612,
+        "positives": 250,
+        "base_rate": 0.029,
+        "ap_rule": 0.073,
+        "ap_rule_multi": 0.066,
+        "ap_old": 0.166,
+        "ap_old_multi": 0.134,
+        "ap_new": 0.192,
+        "ap_new_multi": 0.171,
+        "ap_v2": 0.188,
+        "ap_v2_multi": 0.169
+      },
+      {
+        "test_quarter": "2024-01-01",
+        "rows": 9282,
+        "positives": 343,
+        "base_rate": 0.037,
+        "ap_rule": 0.122,
+        "ap_rule_multi": 0.127,
+        "ap_old": 0.237,
+        "ap_old_multi": 0.236,
+        "ap_new": 0.271,
+        "ap_new_multi": 0.29,
+        "ap_v2": 0.267,
+        "ap_v2_multi": 0.283
+      },
+      {
+        "test_quarter": "2024-04-01",
+        "rows": 9732,
+        "positives": 294,
+        "base_rate": 0.0302,
+        "ap_rule": 0.133,
+        "ap_rule_multi": 0.124,
+        "ap_old": 0.252,
+        "ap_old_multi": 0.269,
+        "ap_new": 0.257,
+        "ap_new_multi": 0.285,
+        "ap_v2": 0.253,
+        "ap_v2_multi": 0.281
+      }
+    ],
+    "pooled_ap": {
+      "s_rule": 0.095,
+      "s_old": 0.182,
+      "s_new": 0.195,
+      "s_v2": 0.191
+    },
+    "manager_level_ap": {
+      "s_rule": 0.101,
+      "s_old": 0.194,
+      "s_new": 0.201,
+      "s_v2": 0.199
+    },
+    "new_minus_rule": [
+      0.1,
+      0.079,
+      0.12
+    ],
+    "new_minus_old": [
+      0.012,
+      0.001,
+      0.024
+    ],
+    "v2_minus_new": [
+      -0.003,
+      -0.008,
+      0.002
+    ],
+    "v2_minus_rule": [
+      0.097,
+      0.075,
+      0.118
+    ],
+    "pluralsight": [
+      {
+        "quarter": "2023-04-01",
+        "lenders": 8,
+        "lenders_hit_next_q": 0,
+        "median_pct_rank_new": 0.606,
+        "median_pct_rank_v2": 0.51,
+        "median_pct_rank_rule": 0.634
+      },
+      {
+        "quarter": "2023-07-01",
+        "lenders": 10,
+        "lenders_hit_next_q": 0,
+        "median_pct_rank_new": 0.614,
+        "median_pct_rank_v2": 0.54,
+        "median_pct_rank_rule": 0.837
+      },
+      {
+        "quarter": "2023-10-01",
+        "lenders": 12,
+        "lenders_hit_next_q": 8,
+        "median_pct_rank_new": 0.298,
+        "median_pct_rank_v2": 0.435,
+        "median_pct_rank_rule": 0.868
+      },
+      {
+        "quarter": "2024-01-01",
+        "lenders": 9,
+        "lenders_hit_next_q": 9,
+        "median_pct_rank_new": 0.991,
+        "median_pct_rank_v2": 0.99,
+        "median_pct_rank_rule": 0.959
+      }
+    ],
+    "top_features": {
+      "avg_mark_across_lenders": 12272,
+      "mark": 10852,
+      "min_mark_change_2q": 4564,
+      "min_mark": 4011,
+      "spread": 3772,
+      "mark_dispersion": 3657,
+      "mark_drift_2q": 3535,
+      "min_mark_drift": 3406,
+      "interest_rate": 3176,
+      "mark_drift": 2890
+    }
+  },
+  {
+    "laggard_alert": {
+      "base_rate_excl_pluralsight": 0.0317,
+      "threshold_sweep": [
+        {
+          "others_cut_at_least": 0.02,
+          "alerts": 1111,
+          "hit_rate": 0.064,
+          "lift": 2.0,
+          "worst_quarter_hit": 0.057
+        },
+        {
+          "others_cut_at_least": 0.03,
+          "alerts": 597,
+          "hit_rate": 0.095,
+          "lift": 3.0,
+          "worst_quarter_hit": 0.071
+        },
+        {
+          "others_cut_at_least": 0.04,
+          "alerts": 439,
+          "hit_rate": 0.109,
+          "lift": 3.4,
+          "worst_quarter_hit": 0.088
+        },
+        {
+          "others_cut_at_least": 0.05,
+          "alerts": 332,
+          "hit_rate": 0.099,
+          "lift": 3.1,
+          "worst_quarter_hit": 0.053
+        },
+        {
+          "others_cut_at_least": 0.07,
+          "alerts": 187,
+          "hit_rate": 0.091,
+          "lift": 2.9,
+          "worst_quarter_hit": 0.055
+        },
+        {
+          "others_cut_at_least": 0.1,
+          "alerts": 130,
+          "hit_rate": 0.1,
+          "lift": 3.2,
+          "worst_quarter_hit": 0.057
+        }
+      ],
+      "chosen_threshold": 0.04,
+      "pluralsight_alerts": [
+        {
+          "quarter": "2023-10-01",
+          "alerts": 11,
+          "hit_next_q": 8
+        }
+      ]
+    }
+  }
+]

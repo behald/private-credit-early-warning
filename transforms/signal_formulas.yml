@@ -1,0 +1,43 @@
+signals:
+  mark:
+    formula: "fair_value / cost"
+    description: "Ratio of fair value to cost basis. 1.0 = par, below 1.0 = markdown."
+    range: "[0, ~1.1]"
+    interpretation: "Below 0.95 is concerning; below 0.80 is deeply distressed."
+
+  mark_drift:
+    formula: "mark(t) - mark(t-1)"
+    description: "Quarter-over-quarter change in mark for a specific borrower-lender pair."
+    range: "typically [-0.3, 0.1]"
+    interpretation: "Negative drift means the lender is marking down. Sustained negative drift is a strong warning signal."
+
+  cross_lender_mark_dispersion:
+    formula: "stddev(mark) across all lenders holding the same borrower in the same quarter"
+    description: "How much lenders disagree on fair value for the same borrower."
+    range: "[0, ~0.3]"
+    interpretation: "Above 0.10 suggests one lender is lagging or aggressive in valuation."
+
+  lender_mark_vs_avg:
+    formula: "mark(lender, borrower, quarter) - avg_mark(borrower, quarter)"
+    description: "How this lender's mark compares to the average across all lenders for this borrower."
+    interpretation: "Positive = this lender is more optimistic. Negative = this lender has already marked down."
+
+  pik_migration:
+    formula: "1 if prior_pik_flag = 0 AND current_pik_flag = 1, else 0"
+    description: "Whether the investment shifted from cash-pay to payment-in-kind this quarter."
+    interpretation: "PIK migration is a classic stress signal. The borrower cannot service cash interest."
+
+  par_migration:
+    formula: "1 if prior_mark >= 0.95 AND current_mark < 0.95, else 0"
+    description: "Whether the position fell from near-par to below-par this quarter."
+    interpretation: "First markdown from par often precedes further deterioration."
+
+  non_accrual_migration:
+    formula: "1 if prior_non_accrual = 0 AND current_non_accrual = 1, else 0"
+    description: "Whether the position was newly placed on non-accrual status."
+    interpretation: "Non-accrual means the lender no longer expects to collect interest. Severe distress."
+
+  lender_lag:
+    formula: "rank of lender by markdown timing for shared deteriorating borrowers"
+    description: "Identifies which lender marks down first vs. last for the same borrower."
+    interpretation: "Consistently lagging lenders may be slow to recognize losses."

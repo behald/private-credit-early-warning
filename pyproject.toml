@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "private-credit-radar"
+version = "0.1.0"
+description = "Private Credit Early Warning Radar - SEC BDC filing analysis"
+requires-python = ">=3.11"
+dependencies = [
+    "requests",
+    "duckdb",
+    "dbt-duckdb",
+    "pandas",
+    "pyarrow",
+    "lightgbm",
+    "scikit-learn",
+    "streamlit",
+    "plotly",
+    "pydantic>=2.0",
+    "python-dotenv",
+    "structlog",
+    "thefuzz",
+    "sentence-transformers",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "great-expectations",
+]

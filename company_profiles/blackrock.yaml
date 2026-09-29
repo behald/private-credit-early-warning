@@ -1,0 +1,15 @@
+name: BlackRock
+slug: blackrock
+cluster: Capital Markets and Credit
+product_focus: "largest asset manager globally, runs BlackRock TCP Capital Corp (TCPC) BDC"
+customers: "institutional investors, pension funds, sovereign wealth funds"
+angle: "how their own public BDC compares to peers using only public filings, plus the entity resolution and data quality angle for their data-driven investment platform"
+highlight_views:
+  - lender_comparison
+  - watchlist
+  - market_overview
+data_slice:
+  include_lender: "TCPC"
+sources:
+  - "https://www.blackrock.com/us/individual/products/tcpc"
+  - "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001534254"
