@@ -21,7 +21,7 @@ Pluralsight's loan was held by 16 BDCs. From the real filings in this project:
 
 Marks are fair value divided by cost.
 
-The **laggard alert** in this project fired in Q4 2023 for 10 lenders that had not yet moved. **7 of those 10 cut their marks by 5+ points the next quarter**, two quarters before the collapse.
+The **laggard alert** in this project fired in Q4 2023 for 14 lenders that had not yet moved. **10 of those 14 cut their marks by 5+ points the next quarter**, two quarters before the collapse.
 
 ## Data
 
@@ -31,7 +31,7 @@ Source: [SEC DERA BDC Data Sets](https://www.sec.gov/data-research/sec-markets-d
 |---|---|
 | Files used | 7 quarterly zips, 2023 Q2 to 2024 Q4 |
 | Raw rows | 730,310 |
-| Clean debt positions | 163,539 |
+| Clean debt positions | 162,005 |
 | Lenders | 139 BDCs, grouped into managers |
 | Borrowers | 16,717 raw names resolved to 13,251 |
 | Period covered | Q4 2022 to Q3 2024 |
@@ -45,6 +45,7 @@ Cleaning problems found in the real data and fixed in `src/ingest_sec_bdc.py`:
 5. Subtotal and cash rows are removed by pattern and by size.
 6. Borrower names are parsed from free text, and category prefixes like "Internet Software and Services" are learned from the data and stripped.
 7. Zero cost rows such as undrawn revolvers are dropped.
+8. Rows with mark (fair value / cost) outside 0–2 are dropped (negative fair values, unit errors). This removed about 1,500 rows.
 
 ## Results (rolling, out of sample)
 
@@ -54,9 +55,9 @@ Every quarter, models train only on earlier quarters. Score is PR-AUC, higher is
 
 | Method | PR-AUC |
 |---|---|
-| Rule: lowest mark first | **0.213** |
-| LightGBM, original features | 0.175 |
-| LightGBM, cross lender features | 0.187 |
+| Rule: lowest mark first | **0.230** |
+| LightGBM, original features | 0.196 |
+| LightGBM, cross lender features | 0.197 |
 
 The simple rule wins. This target is almost mechanically tied to how close the mark already is to 0.80.
 
@@ -64,21 +65,21 @@ The simple rule wins. This target is almost mechanically tied to how close the m
 
 | Method | PR-AUC |
 |---|---|
-| Rule: lowest mark first | 0.098 |
-| LightGBM, original features | 0.192 |
-| LightGBM, cross lender features | **0.205** |
+| Rule: lowest mark first | 0.101 |
+| LightGBM, original features | 0.152 |
+| LightGBM, cross lender features | **0.157** |
 
-The model is about 6x better than random and 2x better than the rule. Cross lender features add +0.013 (90% CI +0.003 to +0.023, resampling whole borrowers).
+The model is about 5x better than random and 1.6x better than the rule. Cross lender features add +0.005 (90% CI -0.004 to +0.013, resampling whole borrowers).
 
 **Laggard alert:** another manager cut the borrower by 4+ points this quarter and this lender's mark moved less than 2 points.
 
 | Others cut at least | Alerts | Hit rate | Lift |
 |---|---|---|---|
-| 3 points | 615 | 11.5% | 3.6x |
-| **4 points** | **445** | **13.7%** | **4.3x** |
-| 5 points | 348 | 12.6% | 3.9x |
+| 3 points | 604 | 8.6% | 2.9x |
+| **4 points** | **446** | **9.6%** | **3.3x** |
+| 5 points | 343 | 9.6% | 3.3x |
 
-Threshold chosen with Pluralsight excluded. Base rate 3.2%.
+Threshold chosen with Pluralsight excluded. Base rate 3.0%.
 
 ## Honest limitations
 
@@ -87,6 +88,7 @@ Threshold chosen with Pluralsight excluded. Base rate 3.2%.
 3. Borrower name parsing is heuristic. Some names still carry noise.
 4. Quarters after a restructuring are excluded from targets because old and new loans are not comparable.
 5. A manager level version of the cross lender features (v2) did not improve the model, even though the lag effect itself is strong. It is rare, about 2% of rows, so it works better as a simple alert than as a model feature.
+6. Rows with mark (fair value / cost) outside 0–2 are excluded at staging. A small number of SEC rows have negative fair values or unit mismatches that produce marks of -15 or 25; including them distorts averages and the watchlist. The filter removes about 1,500 of 163,000 debt positions.
 
 ## How to run
 

@@ -121,10 +121,14 @@ def main():
         FROM raw_soi_positions
         WHERE fair_value IS NOT NULL
             AND borrower_name_raw IS NOT NULL
+            AND CAST(fair_value AS DOUBLE) >= 0
+            AND CAST(fair_value AS DOUBLE) / CAST(cost AS DOUBLE) <= 2.0
             {extra_filter}
     """)
+    pre_filter = con.execute("SELECT COUNT(*) FROM raw_soi_positions WHERE fair_value IS NOT NULL AND borrower_name_raw IS NOT NULL AND cost > 0").fetchone()[0]
     stg_count = con.execute("SELECT COUNT(*) FROM stg_soi_positions").fetchone()[0]
-    logger.info(f"Staging table: {stg_count} rows")
+    dropped = pre_filter - stg_count
+    logger.info(f"Staging table: {stg_count} rows (dropped {dropped} rows with mark outside 0–2)")
 
     logger.info("Running entity resolution...")
     con.close()

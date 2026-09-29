@@ -66,7 +66,7 @@ def market_overview(con: duckdb.DuckDBPyConnection) -> None:
                 quarter,
                 COUNT(DISTINCT canonical_borrower_id) AS borrowers,
                 COUNT(DISTINCT lender_cik) AS lenders,
-                AVG(mark) AS avg_mark,
+                MEDIAN(mark) AS median_mark,
                 SUM(CASE WHEN non_accrual_flag = 1 THEN 1 ELSE 0 END) AS non_accrual_count,
                 SUM(CASE WHEN pik_flag = 1 THEN 1 ELSE 0 END) AS pik_count
             FROM mart_signals
@@ -80,7 +80,7 @@ def market_overview(con: duckdb.DuckDBPyConnection) -> None:
 
         col1, col2 = st.columns(2)
         with col1:
-            fig = px.line(summary, x="quarter", y="avg_mark", title="Average Mark Over Time")
+            fig = px.line(summary, x="quarter", y="median_mark", title="Median Mark Over Time")
             fig.add_hline(y=0.95, line_dash="dash", line_color="orange", annotation_text="Par")
             st.plotly_chart(fig, use_container_width=True)
 
@@ -151,21 +151,27 @@ def lender_comparison(con: duckdb.DuckDBPyConnection) -> None:
             SELECT
                 bdc_name,
                 COUNT(DISTINCT canonical_borrower_id) AS portfolio_size,
-                AVG(mark) AS avg_mark,
+                MEDIAN(mark) AS median_mark,
                 AVG(mark_drift) AS avg_mark_drift,
                 SUM(CASE WHEN non_accrual_flag = 1 THEN 1 ELSE 0 END) AS non_accrual_count,
                 SUM(CASE WHEN pik_flag = 1 THEN 1 ELSE 0 END) AS pik_count
             FROM mart_signals
             WHERE quarter = (SELECT MAX(quarter) FROM mart_signals)
             GROUP BY bdc_name
-            ORDER BY avg_mark ASC
+            HAVING COUNT(DISTINCT canonical_borrower_id) >= 20
+            ORDER BY median_mark ASC
         """).fetchdf()
 
         if lenders.empty:
             st.info("No lender data available.")
             return
 
-        fig = px.bar(lenders, x="bdc_name", y="avg_mark", title="Average Mark by Lender (Latest Quarter)")
+        bottom20 = lenders.head(20)
+        top20 = lenders.tail(20)
+        chart_df = pd.concat([bottom20, top20]).drop_duplicates()
+
+        fig = px.bar(chart_df, x="bdc_name", y="median_mark",
+                     title="Median Mark by Lender — 20 Lowest & 20 Highest (min 20 positions)")
         fig.add_hline(y=0.95, line_dash="dash", line_color="orange")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -180,11 +186,28 @@ def watchlist_view(con: duckdb.DuckDBPyConnection) -> None:
 
     try:
         name_sql, join_sql = name_expr(con)
+
+        # Heading-like names and equity positions to exclude
+        junk_patterns = [
+            "ILIKE '%Unsecured Notes%'",
+            "ILIKE '%Common Equity%'",
+            "ILIKE '%Common Stock%'",
+            "ILIKE '%Preferred Stock%'",
+            "ILIKE '%Affiliate Investments%'",
+            "ILIKE '%Non-Affiliate%'",
+            "ILIKE '%Total%'",
+            "ILIKE '%Subtotal%'",
+        ]
+        junk_filter = " AND ".join(f"NOT ({name_sql} {p})" for p in junk_patterns)
+
+        # Active watchlist: worst mark >= 0.3 (not already written off)
         watchlist = con.execute(f"""
             SELECT {name_sql} AS borrower_name, s.*
             FROM mart_watchlist s {join_sql}
             WHERE s.quarter = (SELECT MAX(quarter) FROM mart_watchlist)
-            ORDER BY s.avg_mark ASC
+                AND s.worst_mark >= 0.3
+                AND {junk_filter}
+            ORDER BY s.avg_mark ASC, s.max_dispersion DESC
             LIMIT 50
         """).fetchdf()
 
@@ -194,6 +217,22 @@ def watchlist_view(con: duckdb.DuckDBPyConnection) -> None:
 
         st.warning(f"{len(watchlist)} borrowers on the watchlist")
         st.dataframe(watchlist, use_container_width=True)
+
+        # Written-off positions shown separately
+        written_off = con.execute(f"""
+            SELECT {name_sql} AS borrower_name,
+                   s.canonical_borrower_id, s.num_lenders, s.worst_mark, s.avg_mark
+            FROM mart_watchlist s {join_sql}
+            WHERE s.quarter = (SELECT MAX(quarter) FROM mart_watchlist)
+                AND s.worst_mark < 0.3
+                AND {junk_filter}
+            ORDER BY s.worst_mark ASC
+            LIMIT 20
+        """).fetchdf()
+
+        if not written_off.empty:
+            with st.expander(f"Written off or near zero ({len(written_off)} borrowers)"):
+                st.dataframe(written_off, use_container_width=True)
 
     except Exception as e:
         st.error(f"Query failed: {e}")
