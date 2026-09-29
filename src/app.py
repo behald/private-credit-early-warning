@@ -341,7 +341,7 @@ def main() -> None:
         st.error(f"Database not found at {DB_PATH}. Run the pipeline first: `make run`")
         return
 
-    con = get_connection()
+    con = get_connection().cursor()
 
     views = {
         "Market Overview": market_overview,
