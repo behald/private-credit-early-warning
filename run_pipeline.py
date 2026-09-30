@@ -16,9 +16,13 @@ Usage:
     python run_pipeline.py            # real data if available, else sample
     python run_pipeline.py --sample   # force the synthetic sample
 """
+import os, sys
+if os.environ.get("PYTHONHASHSEED") != "0":
+    os.environ["PYTHONHASHSEED"] = "0"
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
 import json
 import logging
-import sys
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -122,14 +126,19 @@ def main():
         WHERE fair_value IS NOT NULL
             AND borrower_name_raw IS NOT NULL
             AND CAST(fair_value AS DOUBLE) > 0
-            AND CAST(fair_value AS DOUBLE) / CAST(cost AS DOUBLE) <= 2.0
+            AND CAST(fair_value AS DOUBLE) / CAST(cost AS DOUBLE) BETWEEN 0.05 AND 2.0
             {extra_filter}
     """)
-    pre_filter = con.execute("SELECT COUNT(*) FROM raw_soi_positions WHERE fair_value IS NOT NULL AND borrower_name_raw IS NOT NULL AND cost > 0").fetchone()[0]
+    pre_filter_sql = "SELECT COUNT(*) FROM raw_soi_positions WHERE fair_value IS NOT NULL AND borrower_name_raw IS NOT NULL AND cost > 0"
+    if "asset_class" in raw_cols:
+        pre_filter_sql += " AND asset_class = 'debt'"
+    pre_filter = con.execute(pre_filter_sql).fetchone()[0]
     stg_count = con.execute("SELECT COUNT(*) FROM stg_soi_positions").fetchone()[0]
     dropped = pre_filter - stg_count
-    zero_fv = con.execute("SELECT COUNT(*) FROM raw_soi_positions WHERE fair_value IS NOT NULL AND borrower_name_raw IS NOT NULL AND cost > 0 AND CAST(fair_value AS DOUBLE) = 0").fetchone()[0]
-    logger.info(f"Staging table: {stg_count} rows (dropped {dropped} with mark outside (0,2], including {zero_fv} with fair_value=0)")
+    zero_fv = con.execute(pre_filter_sql + " AND CAST(fair_value AS DOUBLE) = 0").fetchone()[0]
+    neg_marks = con.execute(pre_filter_sql + " AND (CAST(fair_value AS DOUBLE) < 0 OR CAST(fair_value AS DOUBLE) / CAST(cost AS DOUBLE) < 0)").fetchone()[0]
+    logger.info(f"Staging: {stg_count} rows (mark in [0.05, 2.0])")
+    logger.info(f"  Dropped {dropped}: {zero_fv} fair_value=0, {neg_marks} negative marks (data errors), {dropped - zero_fv - neg_marks} other")
 
     logger.info("Running entity resolution...")
     con.close()
@@ -153,15 +162,46 @@ def main():
             ON s.borrower_name_raw = m.borrower_name_raw
     """)
 
-    # Readable borrower names for the dashboard: most common raw spelling
+    # Readable borrower names for the dashboard: most common raw spelling,
+    # then strip "Issuer Name" prefix and leading industry category phrases
     con.execute("""
         CREATE OR REPLACE TABLE dim_borrower AS
         SELECT canonical_borrower_id,
-               REGEXP_REPLACE(MODE(borrower_name_raw), '^Issuer Name\s+', '', 'i') AS borrower_name,
+               REGEXP_REPLACE(
+                   REGEXP_REPLACE(MODE(borrower_name_raw),
+                       '^Issuer Name\s+', '', 'i'),
+                   '^(?:[\w/.,-]+\s+)*?(?:Services?|Products?|Equipment|Solutions?|Industries?|Distribution)\s+',
+                   '', 'i'
+               ) AS borrower_name,
                COUNT(DISTINCT cik) AS lenders_ever
         FROM stg_soi_positions_resolved
         GROUP BY canonical_borrower_id
     """)
+
+    # Written-off positions: fair_value=0 or mark in [0, 0.05). Negative marks dropped as data errors.
+    wo_asset = "AND asset_class = 'debt'" if "asset_class" in raw_cols else ""
+    con.execute(f"""
+        CREATE OR REPLACE TABLE stg_written_off AS
+        SELECT
+            COALESCE(m.canonical_borrower_id, r.investment_id) AS canonical_borrower_id,
+            r.borrower_name_raw,
+            r.cik,
+            r.bdc_name,
+            DATE_TRUNC('quarter', CAST(r.period_end AS DATE)) AS quarter,
+            CAST(r.fair_value AS DOUBLE) AS fair_value,
+            CAST(r.cost AS DOUBLE) AS cost,
+            CAST(r.fair_value AS DOUBLE) / NULLIF(CAST(r.cost AS DOUBLE), 0) AS mark
+        FROM raw_soi_positions r
+        LEFT JOIN borrower_canonical_map m ON r.borrower_name_raw = m.borrower_name_raw
+        WHERE r.fair_value IS NOT NULL
+            AND r.borrower_name_raw IS NOT NULL
+            AND CAST(r.cost AS DOUBLE) > 0
+            AND CAST(r.fair_value AS DOUBLE) >= 0
+            AND CAST(r.fair_value AS DOUBLE) / CAST(r.cost AS DOUBLE) < 0.05
+            {wo_asset}
+    """)
+    wo_count = con.execute("SELECT COUNT(*) FROM stg_written_off").fetchone()[0]
+    logger.info(f"Written-off table: {wo_count} rows (fair_value=0 or mark < 0.05)")
 
     logger.info("Creating quarterly panel...")
     con.execute("""

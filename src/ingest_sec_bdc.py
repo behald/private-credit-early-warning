@@ -322,7 +322,7 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
 
     # Need an identifier and numbers
     out = out.dropna(subset=["identifier", "fair_value", "cost"])
-    out = out.drop_duplicates(["cik", "period_end", "identifier", "cost", "fair_value"])
+    out = out.sort_values(["cik", "period_end", "identifier", "cost", "fair_value", "accession_number"]).drop_duplicates(["cik", "period_end", "identifier", "cost", "fair_value"])
     logger.info(f"After dedup: {len(out):,}")
 
     # 5. Non positions and subtotals by pattern

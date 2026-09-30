@@ -99,7 +99,6 @@ def add_manager_features(df: pd.DataFrame) -> pd.DataFrame:
     df["manager"] = df["bdc_name"].map(manager_of)
     m = (df.groupby(["canonical_borrower_id", "quarter", "manager"])
            .agg(m_mark=("mark", "mean"), m_drift=("mark_drift", "mean")).reset_index())
-    m["m_drift"] = m["m_drift"].clip(lower=-0.30)
     m["m_cut"] = (m["m_drift"] < -0.01).astype(float)
 
     key = ["canonical_borrower_id", "quarter"]
@@ -125,9 +124,9 @@ def add_manager_features(df: pd.DataFrame) -> pd.DataFrame:
                   on=key + ["manager"], how="left")
     df["gap_to_others"] = df["mark"] - df["others_min_mark"]
     # How much the gap opened this quarter: positive when others just cut and I didn't
-    df = df.sort_values(["canonical_borrower_id", "lender_cik", "quarter"])
+    df = df.sort_values(["canonical_borrower_id", "lender_cik", "bdc_name", "quarter"])
     df["gap_change"] = df["gap_to_others"] - df.groupby(
-        ["canonical_borrower_id", "lender_cik"])["gap_to_others"].shift(1)
+        ["canonical_borrower_id", "lender_cik", "bdc_name"])["gap_to_others"].shift(1)
     df["lag_pressure"] = df["mark_drift"] - df["others_min_drift"]
     return df
 
@@ -140,7 +139,7 @@ LGB_PARAMS = dict(
 NUM_ROUNDS = 300
 
 
-def build_dataset(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+def build_dataset(con: duckdb.DuckDBPyConnection) -> tuple[pd.DataFrame, pd.DataFrame]:
     df = con.execute("""
         WITH pricing AS (
             SELECT r.canonical_borrower_id, r.cik AS lender_cik, r.quarter,
@@ -154,11 +153,12 @@ def build_dataset(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         SELECT s.*, p.spread, p.interest_rate
         FROM mart_signals s
         LEFT JOIN pricing p USING (canonical_borrower_id, lender_cik, quarter)
+        ORDER BY s.canonical_borrower_id, s.lender_cik, s.bdc_name, s.quarter
     """).fetchdf()
 
     df["quarter"] = pd.to_datetime(df["quarter"])
-    df = df.sort_values(["canonical_borrower_id", "lender_cik", "quarter"])
-    g = df.groupby(["canonical_borrower_id", "lender_cik"])
+    df = df.sort_values(["canonical_borrower_id", "lender_cik", "bdc_name", "quarter"])
+    g = df.groupby(["canonical_borrower_id", "lender_cik", "bdc_name"])
 
     # Next quarter outcome, only when the next row really is the next quarter
     df["next_quarter"] = g["quarter"].shift(-1)
@@ -185,7 +185,7 @@ def build_dataset(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
 
     df = add_manager_features(df)
     healthy = df["mark"] >= THRESHOLD
-    return df[healthy & comparable & df["next_mark"].notna()].copy()
+    return df[healthy & comparable & df["next_mark"].notna()].copy(), df
 
 
 def cluster_bootstrap_diff(frame: pd.DataFrame, a: str, b: str, n: int = 500, seed: int = 0):
@@ -311,7 +311,8 @@ def _sweep_thresholds(data: pd.DataFrame, base_rate: float) -> list[dict]:
     return rows
 
 
-def laggard_alert_report(df: pd.DataFrame, pluralsight_ids: set[str]) -> dict:
+def laggard_alert_report(df: pd.DataFrame, full_df: pd.DataFrame,
+                         pluralsight_ids: set[str]) -> dict:
     """A simple, explainable alert: another manager just cut this borrower
     hard, and this lender has not moved. Evaluated on 5+ point markdowns.
     Threshold chosen on pre-2024 data, validated on 2024+."""
@@ -343,20 +344,47 @@ def laggard_alert_report(df: pd.DataFrame, pluralsight_ids: set[str]) -> dict:
                    "hit_next_q": int(g["y"].sum())} for q, g in ps.groupby("quarter")]
 
     latest = df[df["quarter"] == df["quarter"].max()]
+    alerts_df = latest[latest["alert"]][
+        ["canonical_borrower_id", "bdc_name", "manager", "mark", "others_min_drift"]
+    ].copy()
+
+    # Identify which other manager made the biggest cut, with before/after marks
+    latest_q = df["quarter"].max()
+    mgr = (full_df[full_df["quarter"] == latest_q]
+           .groupby(["canonical_borrower_id", "manager"])
+           .agg(mgr_mark=("mark", "mean"), mgr_drift=("mark_drift", "mean"),
+                mgr_prior=("prior_mark", "mean"))
+           .reset_index())
+    other_rows = []
+    for _, row in alerts_df.iterrows():
+        others = mgr[(mgr["canonical_borrower_id"] == row["canonical_borrower_id"])
+                      & (mgr["manager"] != row["manager"])]
+        if not others.empty:
+            worst = others.loc[others["mgr_drift"].idxmin()]
+            other_rows.append({"other_manager": worst["manager"],
+                               "other_mark_now": round(float(worst["mgr_mark"]), 4),
+                               "other_mark_before": round(float(worst["mgr_prior"]), 4)
+                                   if pd.notna(worst["mgr_prior"]) else None})
+        else:
+            other_rows.append({"other_manager": None, "other_mark_now": None,
+                               "other_mark_before": None})
+    if other_rows:
+        alerts_df = pd.concat([alerts_df.reset_index(drop=True),
+                               pd.DataFrame(other_rows)], axis=1)
+
     return {"base_rate_excl_pluralsight_train": round(base_train, 4),
             "base_rate_excl_pluralsight_test": round(base_test, 4),
             "threshold_sweep_train": sweep_train,
             "threshold_sweep_test": sweep_test,
             "chosen_threshold": -chosen,
             "pluralsight_alerts": ps_summary,
-            "latest_quarter_alerts": latest[latest["alert"]][
-                ["canonical_borrower_id", "bdc_name", "manager", "mark", "others_min_drift"]]}
+            "latest_quarter_alerts": alerts_df}
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     con = duckdb.connect(str(DB_PATH), read_only=True)
-    base = build_dataset(con)
+    base, full_df = build_dataset(con)
     pluralsight_ids = {r[0] for r in con.execute(
         "SELECT DISTINCT canonical_borrower_id FROM borrower_canonical_map "
         "WHERE borrower_name_raw ILIKE '%pluralsight%'").fetchall()}
@@ -379,7 +407,7 @@ def main() -> None:
     for r in results:
         print_result(r)
 
-    alert = laggard_alert_report(base, pluralsight_ids)
+    alert = laggard_alert_report(base, full_df, pluralsight_ids)
     print("\n=== Laggard alert: another manager just cut, this lender has not ===")
     print(f"Base rate (pre-2024, Pluralsight excluded): {alert['base_rate_excl_pluralsight_train']}")
     print(f"Base rate (2024+, Pluralsight excluded):    {alert['base_rate_excl_pluralsight_test']}")

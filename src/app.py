@@ -219,21 +219,27 @@ def watchlist_view(con: duckdb.DuckDBPyConnection) -> None:
         st.warning(f"{len(watchlist)} borrowers on the watchlist")
         st.dataframe(watchlist, use_container_width=True)
 
-        # Written-off positions shown separately
-        written_off = con.execute(f"""
-            SELECT {name_sql} AS borrower_name,
-                   s.canonical_borrower_id, s.num_lenders, s.worst_mark, s.avg_mark
-            FROM mart_watchlist s {join_sql}
-            WHERE s.quarter = (SELECT MAX(quarter) FROM mart_watchlist)
-                AND s.worst_mark < 0.3
-                AND {junk_filter}
-            ORDER BY s.worst_mark ASC
-            LIMIT 20
-        """).fetchdf()
+        # Written-off positions from the dedicated staging table
+        if has_table(con, "stg_written_off"):
+            name_wo, join_wo = name_expr(con, alias="w")
+            written_off = con.execute(f"""
+                SELECT {name_wo} AS borrower_name,
+                       w.canonical_borrower_id,
+                       COUNT(DISTINCT w.cik) AS num_lenders,
+                       MIN(w.mark) AS worst_mark,
+                       AVG(w.mark) AS avg_mark,
+                       SUM(w.cost) AS total_cost
+                FROM stg_written_off w
+                {join_wo}
+                WHERE w.quarter = (SELECT MAX(quarter) FROM stg_written_off)
+                GROUP BY 1, 2
+                ORDER BY worst_mark ASC
+                LIMIT 30
+            """).fetchdf()
 
-        if not written_off.empty:
-            with st.expander(f"Written off or near zero ({len(written_off)} borrowers)"):
-                st.dataframe(written_off, use_container_width=True)
+            if not written_off.empty:
+                with st.expander(f"Written off or near zero ({len(written_off)} borrowers)"):
+                    st.dataframe(written_off, use_container_width=True)
 
     except Exception as e:
         st.error(f"Query failed: {e}")
@@ -249,7 +255,7 @@ def laggard_alerts_view(con: duckdb.DuckDBPyConnection) -> None:
         if alert:
             chosen_pts = alert.get("chosen_threshold", 0.04)
 
-    threshold_label = f"{chosen_pts:.0%}" if chosen_pts else "4+"
+    threshold_label = f"{int(chosen_pts * 100)}" if chosen_pts else "4+"
     st.markdown(
         f"An alert fires when **another manager cut a borrower by {threshold_label} points "
         f"this quarter and this lender's mark moved less than 2 points**. "
@@ -265,7 +271,7 @@ def laggard_alerts_view(con: duckdb.DuckDBPyConnection) -> None:
             st.caption(f"Base rate: {alert.get('base_rate_excl_pluralsight_test', 0):.1%}")
             st.dataframe(pd.DataFrame(alert["threshold_sweep_test"]), use_container_width=True)
 
-        st.info(f"Chosen threshold: others cut at least **{chosen_pts:.0%} points** (best hit rate on pre-2024 data)")
+        st.info(f"Chosen threshold: others cut at least **{int(chosen_pts * 100)} points** (best hit rate on pre-2024 data)")
 
         if alert.get("pluralsight_alerts"):
             ps = alert["pluralsight_alerts"][0]

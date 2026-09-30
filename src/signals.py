@@ -34,7 +34,7 @@ def compute_signals(con: duckdb.DuckDBPyConnection) -> None:
             SELECT *,
                 fair_value / NULLIF(cost, 0) AS mark,
                 ROW_NUMBER() OVER (
-                    PARTITION BY canonical_borrower_id, lender_cik
+                    PARTITION BY canonical_borrower_id, lender_cik, bdc_name
                     ORDER BY quarter
                 ) AS quarter_seq
             FROM mart_quarterly_panel
@@ -42,11 +42,11 @@ def compute_signals(con: duckdb.DuckDBPyConnection) -> None:
         with_lag AS (
             SELECT p.*,
                 LAG(p.mark) OVER (
-                    PARTITION BY p.canonical_borrower_id, p.lender_cik
+                    PARTITION BY p.canonical_borrower_id, p.lender_cik, p.bdc_name
                     ORDER BY p.quarter
                 ) AS prior_mark,
                 LAG(p.pik_flag, 1, 0) OVER (
-                    PARTITION BY p.canonical_borrower_id, p.lender_cik
+                    PARTITION BY p.canonical_borrower_id, p.lender_cik, p.bdc_name
                     ORDER BY p.quarter
                 ) AS prior_pik_flag
             FROM panel p
@@ -79,14 +79,7 @@ def compute_signals(con: duckdb.DuckDBPyConnection) -> None:
         LEFT JOIN cross_lender cl
             ON wl.canonical_borrower_id = cl.canonical_borrower_id
             AND wl.quarter = cl.quarter
-        WHERE wl.mark IS NOT NULL AND wl.mark >= 0.05
     """)
-
-    panel_rows = con.execute("SELECT COUNT(*) FROM mart_quarterly_panel").fetchone()[0]
-    signal_rows = con.execute("SELECT COUNT(*) FROM mart_signals").fetchone()[0]
-    dropped = panel_rows - signal_rows
-    if dropped > 0:
-        logger.info(f"Dropped {dropped} rows with mark < 0.05 (write-offs) from mart_signals")
 
     # Lender lag: which lender marks down last for deteriorating borrowers
     con.execute("""

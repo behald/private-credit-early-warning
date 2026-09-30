@@ -274,6 +274,7 @@ def resolve_and_save(
         SELECT DISTINCT borrower_name_raw, industry
         FROM raw_soi_positions
         WHERE borrower_name_raw IS NOT NULL
+        ORDER BY borrower_name_raw, industry
     """).fetchall()
 
     raw_names = [r[0] for r in rows]

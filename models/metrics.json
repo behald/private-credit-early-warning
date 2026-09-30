@@ -12,20 +12,20 @@
     "par_migration",
     "avg_mark_across_lenders"
   ],
-  "pr_auc": 0.7557,
-  "precision_at_50": 0.96,
-  "val_size": 13824,
-  "val_positive_rate": 0.037,
+  "pr_auc": 0.7579,
+  "precision_at_50": 0.94,
+  "val_size": 13826,
+  "val_positive_rate": 0.0366,
   "feature_importance": {
-    "mark": 480819.963440706,
-    "avg_mark_across_lenders": 133679.14853616804,
-    "mark_drift": 37062.36525370728,
-    "mark_dispersion": 24196.819245919585,
-    "lender_mark_vs_avg": 16369.451777338982,
-    "num_lenders": 13021.102996647358,
-    "pik_flag": 4278.668269455433,
-    "pik_migration": 2157.8183999061584,
-    "par_migration": 203.88364791870117,
+    "mark": 486079.89032047987,
+    "avg_mark_across_lenders": 129030.54169386625,
+    "mark_drift": 32904.65650874376,
+    "mark_dispersion": 18173.098876178265,
+    "lender_mark_vs_avg": 13780.716311872005,
+    "num_lenders": 12736.778267681599,
+    "pik_flag": 5136.148341655731,
+    "pik_migration": 807.1785011291504,
+    "par_migration": 171.2263011932373,
     "non_accrual_flag": 0.0
   }
 }

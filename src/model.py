@@ -55,13 +55,14 @@ def prepare_model_data(
                     WHEN mark < $1 THEN 1
                     ELSE 0
                 END) OVER (
-                    PARTITION BY canonical_borrower_id, lender_cik
+                    PARTITION BY canonical_borrower_id, lender_cik, bdc_name
                     ORDER BY quarter
                 ) AS target_distress_next_q
             FROM mart_signals s
         )
         SELECT * FROM with_target
         WHERE target_distress_next_q IS NOT NULL
+        ORDER BY canonical_borrower_id, lender_cik, bdc_name, quarter
     """, [mark_threshold]).fetchdf()
 
     return df
