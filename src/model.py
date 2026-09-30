@@ -143,6 +143,7 @@ def train_main_model(
         "bagging_freq": 5,
         "verbose": -1,
         "seed": 42,
+        "num_threads": 1,
     }
 
     callbacks = [lgb.log_evaluation(50), lgb.early_stopping(20)]

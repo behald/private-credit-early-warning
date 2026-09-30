@@ -173,6 +173,7 @@ def lender_comparison(con: duckdb.DuckDBPyConnection) -> None:
         fig = px.bar(chart_df, x="bdc_name", y="median_mark",
                      title="Median Mark by Lender — 20 Lowest & 20 Highest (min 20 positions)")
         fig.add_hline(y=0.95, line_dash="dash", line_color="orange")
+        fig.update_yaxes(range=[0.85, chart_df["median_mark"].max() * 1.02])
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(lenders, use_container_width=True)
@@ -240,24 +241,38 @@ def watchlist_view(con: duckdb.DuckDBPyConnection) -> None:
 
 def laggard_alerts_view(con: duckdb.DuckDBPyConnection) -> None:
     st.header("Laggard Alerts")
-    st.markdown(
-        "An alert fires when **another manager cut a borrower by 4+ points this quarter "
-        "and this lender's mark moved less than 2 points**. Historically these positions "
-        "were marked down 5+ points the next quarter far more often than normal."
-    )
+
+    chosen_pts = None
     if BACKTEST_PATH.exists():
         results = json.loads(BACKTEST_PATH.read_text())
         alert = next((r["laggard_alert"] for r in results if "laggard_alert" in r), None)
         if alert:
-            st.subheader("How reliable is the alert? (Pluralsight excluded)")
-            st.caption(f"Base rate of a 5+ point markdown: {alert['base_rate_excl_pluralsight']:.1%}")
-            st.dataframe(pd.DataFrame(alert["threshold_sweep"]), use_container_width=True)
-            if alert.get("pluralsight_alerts"):
-                ps = alert["pluralsight_alerts"][0]
-                st.success(
-                    f"Pluralsight, quarter starting {ps['quarter']}: alert fired for "
-                    f"{ps['alerts']} lenders, and {ps['hit_next_q']} cut 5+ points the next quarter."
-                )
+            chosen_pts = alert.get("chosen_threshold", 0.04)
+
+    threshold_label = f"{chosen_pts:.0%}" if chosen_pts else "4+"
+    st.markdown(
+        f"An alert fires when **another manager cut a borrower by {threshold_label} points "
+        f"this quarter and this lender's mark moved less than 2 points**. "
+        f"Threshold chosen on pre-2024 data, validated on 2024+."
+    )
+    if BACKTEST_PATH.exists() and alert:
+        st.subheader("Threshold selection (pre-2024, Pluralsight excluded)")
+        st.caption(f"Base rate of a 5+ point markdown: {alert.get('base_rate_excl_pluralsight_train', 0):.1%}")
+        st.dataframe(pd.DataFrame(alert["threshold_sweep_train"]), use_container_width=True)
+
+        if alert.get("threshold_sweep_test"):
+            st.subheader("Out-of-sample validation (2024+)")
+            st.caption(f"Base rate: {alert.get('base_rate_excl_pluralsight_test', 0):.1%}")
+            st.dataframe(pd.DataFrame(alert["threshold_sweep_test"]), use_container_width=True)
+
+        st.info(f"Chosen threshold: others cut at least **{chosen_pts:.0%} points** (best hit rate on pre-2024 data)")
+
+        if alert.get("pluralsight_alerts"):
+            ps = alert["pluralsight_alerts"][0]
+            st.success(
+                f"Pluralsight, quarter starting {ps['quarter']}: alert fired for "
+                f"{ps['alerts']} lenders, and {ps['hit_next_q']} cut 5+ points the next quarter."
+            )
 
     st.subheader("Alerts in the latest quarter")
     if not ALERTS_PATH.exists():

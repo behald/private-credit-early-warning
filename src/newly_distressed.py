@@ -99,6 +99,7 @@ def add_manager_features(df: pd.DataFrame) -> pd.DataFrame:
     df["manager"] = df["bdc_name"].map(manager_of)
     m = (df.groupby(["canonical_borrower_id", "quarter", "manager"])
            .agg(m_mark=("mark", "mean"), m_drift=("mark_drift", "mean")).reset_index())
+    m["m_drift"] = m["m_drift"].clip(lower=-0.30)
     m["m_cut"] = (m["m_drift"] < -0.01).astype(float)
 
     key = ["canonical_borrower_id", "quarter"]
@@ -134,7 +135,7 @@ def add_manager_features(df: pd.DataFrame) -> pd.DataFrame:
 LGB_PARAMS = dict(
     objective="binary", learning_rate=0.03, num_leaves=15, min_data_in_leaf=50,
     feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1,
-    lambda_l2=1.0, verbose=-1, seed=42,
+    lambda_l2=1.0, verbose=-1, seed=42, num_threads=1,
 )
 NUM_ROUNDS = 300
 
@@ -290,33 +291,64 @@ def print_result(r: dict) -> None:
 
 ALERT_OWN_DRIFT = -0.02     # "I have not moved": my mark fell less than 2 points
 ALERT_THRESHOLDS = [-0.02, -0.03, -0.04, -0.05, -0.07, -0.10]
-ALERT_CHOSEN = -0.04        # best hit rate and most stable, chosen with Pluralsight excluded
+MIN_ALERTS_FOR_THRESHOLD = 100
+
+
+def _sweep_thresholds(data: pd.DataFrame, base_rate: float) -> list[dict]:
+    rows = []
+    for th in ALERT_THRESHOLDS:
+        a = data[(data["others_min_drift"] <= th) & (data["mark_drift"] > ALERT_OWN_DRIFT)]
+        if len(a) == 0:
+            rows.append({"others_cut_at_least": -th, "alerts": 0,
+                         "hit_rate": 0.0, "lift": 0.0, "worst_quarter_hit": 0.0})
+            continue
+        hit = a["y"].mean()
+        lift = hit / base_rate if base_rate > 0 else 0
+        per_q = a.groupby("quarter")["y"].mean()
+        rows.append({"others_cut_at_least": -th, "alerts": len(a),
+                      "hit_rate": round(hit, 3), "lift": round(lift, 1),
+                      "worst_quarter_hit": round(per_q.min(), 3)})
+    return rows
 
 
 def laggard_alert_report(df: pd.DataFrame, pluralsight_ids: set[str]) -> dict:
     """A simple, explainable alert: another manager just cut this borrower
-    hard, and this lender has not moved. Evaluated on 5+ point markdowns."""
+    hard, and this lender has not moved. Evaluated on 5+ point markdowns.
+    Threshold chosen on pre-2024 data, validated on 2024+."""
     df = df.copy()
     df["y"] = ((df["next_mark"] - df["mark"]) <= -BIG_DROP).astype(int)
     rest = df[~df["canonical_borrower_id"].isin(pluralsight_ids)]
-    base = rest["y"].mean()
 
-    sweep = []
-    for th in ALERT_THRESHOLDS:
-        a = rest[(rest["others_min_drift"] <= th) & (rest["mark_drift"] > ALERT_OWN_DRIFT)]
-        per_q = a.groupby("quarter")["y"].mean()
-        sweep.append({"others_cut_at_least": -th, "alerts": len(a),
-                      "hit_rate": round(a["y"].mean(), 3), "lift": round(a["y"].mean() / base, 1),
-                      "worst_quarter_hit": round(per_q.min(), 3)})
+    train = rest[rest["quarter"].dt.year < 2024]
+    test = rest[rest["quarter"].dt.year >= 2024]
+    base_train = train["y"].mean()
+    base_test = test["y"].mean() if len(test) > 0 else 0
 
-    df["alert"] = (df["others_min_drift"] <= ALERT_CHOSEN) & (df["mark_drift"] > ALERT_OWN_DRIFT)
+    sweep_train = _sweep_thresholds(train, base_train)
+    sweep_test = _sweep_thresholds(test, base_test)
+
+    best_th = ALERT_THRESHOLDS[0]
+    best_hit = 0.0
+    for th, row in zip(ALERT_THRESHOLDS, sweep_train):
+        if row["alerts"] >= MIN_ALERTS_FOR_THRESHOLD and row["hit_rate"] > best_hit:
+            best_hit = row["hit_rate"]
+            best_th = th
+
+    chosen = best_th
+    logger.info(f"Laggard threshold chosen on pre-2024 data: {-chosen} points (hit rate {best_hit:.1%})")
+
+    df["alert"] = (df["others_min_drift"] <= chosen) & (df["mark_drift"] > ALERT_OWN_DRIFT)
     ps = df[df["canonical_borrower_id"].isin(pluralsight_ids) & df["alert"]]
     ps_summary = [{"quarter": str(pd.Timestamp(q).date()), "alerts": len(g),
                    "hit_next_q": int(g["y"].sum())} for q, g in ps.groupby("quarter")]
 
     latest = df[df["quarter"] == df["quarter"].max()]
-    return {"base_rate_excl_pluralsight": round(base, 4), "threshold_sweep": sweep,
-            "chosen_threshold": -ALERT_CHOSEN, "pluralsight_alerts": ps_summary,
+    return {"base_rate_excl_pluralsight_train": round(base_train, 4),
+            "base_rate_excl_pluralsight_test": round(base_test, 4),
+            "threshold_sweep_train": sweep_train,
+            "threshold_sweep_test": sweep_test,
+            "chosen_threshold": -chosen,
+            "pluralsight_alerts": ps_summary,
             "latest_quarter_alerts": latest[latest["alert"]][
                 ["canonical_borrower_id", "bdc_name", "manager", "mark", "others_min_drift"]]}
 
@@ -349,8 +381,12 @@ def main() -> None:
 
     alert = laggard_alert_report(base, pluralsight_ids)
     print("\n=== Laggard alert: another manager just cut, this lender has not ===")
-    print(f"Base rate of 5+ point markdown (Pluralsight excluded): {alert['base_rate_excl_pluralsight']}")
-    print(pd.DataFrame(alert["threshold_sweep"]).to_string(index=False))
+    print(f"Base rate (pre-2024, Pluralsight excluded): {alert['base_rate_excl_pluralsight_train']}")
+    print(f"Base rate (2024+, Pluralsight excluded):    {alert['base_rate_excl_pluralsight_test']}")
+    print("Threshold sweep (pre-2024, used to choose):")
+    print(pd.DataFrame(alert["threshold_sweep_train"]).to_string(index=False))
+    print("Threshold sweep (2024+, out of sample):")
+    print(pd.DataFrame(alert["threshold_sweep_test"]).to_string(index=False))
     print(f"Chosen: others cut at least {alert['chosen_threshold']:.2f}")
     print("Pluralsight alerts:", alert["pluralsight_alerts"])
     latest = alert.pop("latest_quarter_alerts")

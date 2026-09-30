@@ -79,7 +79,14 @@ def compute_signals(con: duckdb.DuckDBPyConnection) -> None:
         LEFT JOIN cross_lender cl
             ON wl.canonical_borrower_id = cl.canonical_borrower_id
             AND wl.quarter = cl.quarter
+        WHERE wl.mark IS NOT NULL AND wl.mark >= 0.05
     """)
+
+    panel_rows = con.execute("SELECT COUNT(*) FROM mart_quarterly_panel").fetchone()[0]
+    signal_rows = con.execute("SELECT COUNT(*) FROM mart_signals").fetchone()[0]
+    dropped = panel_rows - signal_rows
+    if dropped > 0:
+        logger.info(f"Dropped {dropped} rows with mark < 0.05 (write-offs) from mart_signals")
 
     # Lender lag: which lender marks down last for deteriorating borrowers
     con.execute("""

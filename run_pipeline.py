@@ -121,14 +121,15 @@ def main():
         FROM raw_soi_positions
         WHERE fair_value IS NOT NULL
             AND borrower_name_raw IS NOT NULL
-            AND CAST(fair_value AS DOUBLE) >= 0
+            AND CAST(fair_value AS DOUBLE) > 0
             AND CAST(fair_value AS DOUBLE) / CAST(cost AS DOUBLE) <= 2.0
             {extra_filter}
     """)
     pre_filter = con.execute("SELECT COUNT(*) FROM raw_soi_positions WHERE fair_value IS NOT NULL AND borrower_name_raw IS NOT NULL AND cost > 0").fetchone()[0]
     stg_count = con.execute("SELECT COUNT(*) FROM stg_soi_positions").fetchone()[0]
     dropped = pre_filter - stg_count
-    logger.info(f"Staging table: {stg_count} rows (dropped {dropped} rows with mark outside 0–2)")
+    zero_fv = con.execute("SELECT COUNT(*) FROM raw_soi_positions WHERE fair_value IS NOT NULL AND borrower_name_raw IS NOT NULL AND cost > 0 AND CAST(fair_value AS DOUBLE) = 0").fetchone()[0]
+    logger.info(f"Staging table: {stg_count} rows (dropped {dropped} with mark outside (0,2], including {zero_fv} with fair_value=0)")
 
     logger.info("Running entity resolution...")
     con.close()
@@ -156,7 +157,7 @@ def main():
     con.execute("""
         CREATE OR REPLACE TABLE dim_borrower AS
         SELECT canonical_borrower_id,
-               MODE(borrower_name_raw) AS borrower_name,
+               REGEXP_REPLACE(MODE(borrower_name_raw), '^Issuer Name\s+', '', 'i') AS borrower_name,
                COUNT(DISTINCT cik) AS lenders_ever
         FROM stg_soi_positions_resolved
         GROUP BY canonical_borrower_id
