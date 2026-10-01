@@ -71,13 +71,13 @@ The simple rule wins. This target is almost mechanically tied to how close the m
 
 The model is about 5x better than random and 1.5x better than the rule. Cross lender features add +0.012 (90% CI +0.004 to +0.021, resampling whole borrowers).
 
-**Laggard alert:** another manager cut the borrower by 7+ points this quarter and this lender's mark moved less than 2 points. Threshold chosen on pre-2024 data, validated on 2024+.
+**Laggard alert:** another cost-stable manager cut the borrower by 4+ points this quarter and this lender's mark moved less than 2 points. Cost stability filter (manager's cost between 0.67x and 1.5x of prior quarter) prevents portfolio reshuffles from triggering false alarms. Threshold chosen on pre-2024 data, validated on 2024+.
 
 | | Pre-2024 (training) | 2024+ (out of sample) |
 |---|---|---|
-| Alerts at 7 pts | 102 | 125 |
-| Hit rate | 15.7% | 8.8% |
-| Lift vs base rate | 5.7x | 3.0x |
+| Alerts at 4 pts | 235 | 249 |
+| Hit rate | 13.2% | 10.0% |
+| Lift vs base rate | 4.8x | 3.4x |
 
 Pluralsight excluded from threshold selection. Base rate ~3%.
 
@@ -131,6 +131,10 @@ data/sample/               Old synthetic sample
 models/                    Model, metrics, backtest results, latest alerts
 tests/                     Unit tests
 ```
+
+## Architecture
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture document: pipeline diagram, design tradeoffs, production improvements, and detailed results.
 
 ## Tech stack
 

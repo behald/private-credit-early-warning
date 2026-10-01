@@ -248,20 +248,28 @@ def watchlist_view(con: duckdb.DuckDBPyConnection) -> None:
 def laggard_alerts_view(con: duckdb.DuckDBPyConnection) -> None:
     st.header("Laggard Alerts")
 
+    alert = None
     chosen_pts = None
+    own_drift_pts = None
     if BACKTEST_PATH.exists():
         results = json.loads(BACKTEST_PATH.read_text())
         alert = next((r["laggard_alert"] for r in results if "laggard_alert" in r), None)
         if alert:
-            chosen_pts = alert.get("chosen_threshold", 0.04)
+            chosen_pts = alert.get("chosen_threshold")
+            own_drift_pts = alert.get("own_drift_threshold")
 
-    threshold_label = f"{int(chosen_pts * 100)}" if chosen_pts else "4+"
-    st.markdown(
-        f"An alert fires when **another manager cut a borrower by {threshold_label} points "
-        f"this quarter and this lender's mark moved less than 2 points**. "
-        f"Threshold chosen on pre-2024 data, validated on 2024+."
-    )
-    if BACKTEST_PATH.exists() and alert:
+    if chosen_pts is not None:
+        cut_label = f"{int(chosen_pts * 100)}"
+        drift_label = f"{int(own_drift_pts * 100)}" if own_drift_pts else "2"
+        st.markdown(
+            f"An alert fires when **another manager cut a borrower by {cut_label} points "
+            f"this quarter and this lender's mark moved less than {drift_label} points**. "
+            f"Threshold chosen on pre-2024 data, validated on 2024+."
+        )
+    else:
+        st.info("Run the pipeline to compute alert thresholds.")
+
+    if alert:
         st.subheader("Threshold selection (pre-2024, Pluralsight excluded)")
         st.caption(f"Base rate of a 5+ point markdown: {alert.get('base_rate_excl_pluralsight_train', 0):.1%}")
         st.dataframe(pd.DataFrame(alert["threshold_sweep_train"]), use_container_width=True)
@@ -322,24 +330,33 @@ def architecture_view(con: duckdb.DuckDBPyConnection) -> None:
     st.header("System Architecture")
 
     st.markdown("""
-    ```mermaid
-    graph LR
-        A[SEC EDGAR API] -->|XBRL + JSON| B[Ingestion]
-        B --> C[DuckDB Warehouse]
-        C --> D[dbt: staging/intermediate/marts]
-        D --> E[Entity Resolution]
-        E --> F[Signal Computation]
-        F --> G[LightGBM Model]
-        G --> H[Dashboard]
-    ```
+```
+SEC EDGAR ──▶ DuckDB Warehouse ──▶ ML + Alerts ──▶ Streamlit
+(7 zips)      raw → staging →       LightGBM        7 tabs
+187K rows     entity resolution →   rolling backtest
+              signals (96K) →       laggard alert
+              watchlist (4.8K)
+```
     """)
 
     st.subheader("Pipeline Stages")
     stages = {
-        "Ingestion": "Pulls Schedule of Investments from SEC EDGAR XBRL for 30 BDCs. Rate-limited, idempotent, cached.",
-        "Entity Resolution": "Normalizes borrower names, blocks by industry, computes embedding similarity, union-find clustering. 95%+ precision target.",
-        "Signal Computation": "Mark drift, cross-lender dispersion, PIK migration, par migration, lender lag.",
-        "Prediction Model": "LightGBM with time-based splits. Baseline: logistic regression on mark alone. Reports PR-AUC and precision@50.",
+        "Ingestion": "Reads SEC DERA BDC Schedule of Investments (soi.tsv from 7 quarterly zips). "
+                     "Cleans mislabeled columns, deduplicates amended filings, filters to debt positions, "
+                     "drops data errors. 187K raw → 161K clean.",
+        "Entity Resolution": "Normalizes borrower names (strip legal suffixes, expand abbreviations), "
+                             "hashes to stable canonical IDs. 17K raw names → 13K canonical borrowers. "
+                             "Pure normalization, no embeddings needed.",
+        "Signal Computation": "Mark (fair_value/cost), mark drift, cross-lender dispersion, "
+                              "PIK/non-accrual flags, lender mark vs consensus. "
+                              "All features use only current and prior quarter data.",
+        "LightGBM Model": "10 features, time-based split, deterministic mode. "
+                          "PR-AUC 0.76 on validation (inflated — includes already-distressed).",
+        "Rolling Backtest": "Honest evaluation on only healthy loans. "
+                            "Target B (5+ pt markdown): PR-AUC 0.158, 5x random, 1.5x rule.",
+        "Laggard Alert": "Fires when another manager cuts a borrower 4+ pts and this lender hasn't moved. "
+                         "Cost stability filter prevents portfolio reshuffle false alarms. "
+                         "3.4x lift out of sample.",
     }
     for name, desc in stages.items():
         st.markdown(f"**{name}:** {desc}")
@@ -386,6 +403,9 @@ def architecture_view(con: duckdb.DuckDBPyConnection) -> None:
             st.caption(f"Data range: {row['first_quarter']} to {row['last_quarter']}")
     except Exception:
         st.info("Run the pipeline to see data statistics.")
+
+    st.markdown("---")
+    st.caption("Full architecture documentation: [docs/ARCHITECTURE.md](https://github.com/behaldivaye/private-credit-radar/blob/main/docs/ARCHITECTURE.md)")
 
 
 def main() -> None:

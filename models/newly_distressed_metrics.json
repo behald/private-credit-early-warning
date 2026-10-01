@@ -312,93 +312,100 @@
       "threshold_sweep_train": [
         {
           "others_cut_at_least": 0.02,
-          "alerts": 676,
-          "hit_rate": 0.07,
-          "lift": 2.5,
-          "worst_quarter_hit": 0.057
+          "alerts": 613,
+          "hit_rate": 0.077,
+          "lift": 2.8,
+          "worst_quarter_hit": 0.065
         },
         {
           "others_cut_at_least": 0.03,
-          "alerts": 374,
-          "hit_rate": 0.102,
-          "lift": 3.7,
-          "worst_quarter_hit": 0.079
+          "alerts": 343,
+          "hit_rate": 0.105,
+          "lift": 3.8,
+          "worst_quarter_hit": 0.073
         },
         {
           "others_cut_at_least": 0.04,
-          "alerts": 265,
-          "hit_rate": 0.125,
-          "lift": 4.5,
-          "worst_quarter_hit": 0.103
+          "alerts": 235,
+          "hit_rate": 0.132,
+          "lift": 4.8,
+          "worst_quarter_hit": 0.098
         },
         {
           "others_cut_at_least": 0.05,
-          "alerts": 207,
-          "hit_rate": 0.126,
-          "lift": 4.6,
-          "worst_quarter_hit": 0.107
+          "alerts": 185,
+          "hit_rate": 0.13,
+          "lift": 4.7,
+          "worst_quarter_hit": 0.101
         },
         {
           "others_cut_at_least": 0.07,
-          "alerts": 102,
-          "hit_rate": 0.157,
-          "lift": 5.7,
+          "alerts": 95,
+          "hit_rate": 0.168,
+          "lift": 6.1,
           "worst_quarter_hit": 0.095
         },
         {
           "others_cut_at_least": 0.1,
-          "alerts": 61,
-          "hit_rate": 0.164,
-          "lift": 6.0,
+          "alerts": 59,
+          "hit_rate": 0.169,
+          "lift": 6.2,
           "worst_quarter_hit": 0.062
         }
       ],
       "threshold_sweep_test": [
         {
           "others_cut_at_least": 0.02,
-          "alerts": 758,
-          "hit_rate": 0.053,
-          "lift": 1.8,
-          "worst_quarter_hit": 0.05
+          "alerts": 632,
+          "hit_rate": 0.059,
+          "lift": 2.0,
+          "worst_quarter_hit": 0.049
         },
         {
           "others_cut_at_least": 0.03,
-          "alerts": 389,
-          "hit_rate": 0.09,
-          "lift": 3.0,
-          "worst_quarter_hit": 0.089
+          "alerts": 339,
+          "hit_rate": 0.094,
+          "lift": 3.2,
+          "worst_quarter_hit": 0.081
         },
         {
           "others_cut_at_least": 0.04,
-          "alerts": 285,
-          "hit_rate": 0.098,
-          "lift": 3.3,
-          "worst_quarter_hit": 0.093
+          "alerts": 249,
+          "hit_rate": 0.1,
+          "lift": 3.4,
+          "worst_quarter_hit": 0.089
         },
         {
           "others_cut_at_least": 0.05,
-          "alerts": 215,
-          "hit_rate": 0.074,
-          "lift": 2.5,
-          "worst_quarter_hit": 0.059
+          "alerts": 194,
+          "hit_rate": 0.082,
+          "lift": 2.8,
+          "worst_quarter_hit": 0.065
         },
         {
           "others_cut_at_least": 0.07,
-          "alerts": 125,
-          "hit_rate": 0.088,
-          "lift": 3.0,
-          "worst_quarter_hit": 0.068
+          "alerts": 107,
+          "hit_rate": 0.103,
+          "lift": 3.5,
+          "worst_quarter_hit": 0.079
         },
         {
           "others_cut_at_least": 0.1,
-          "alerts": 90,
-          "hit_rate": 0.1,
-          "lift": 3.4,
-          "worst_quarter_hit": 0.075
+          "alerts": 72,
+          "hit_rate": 0.125,
+          "lift": 4.2,
+          "worst_quarter_hit": 0.093
         }
       ],
-      "chosen_threshold": 0.07,
-      "pluralsight_alerts": []
+      "chosen_threshold": 0.04,
+      "own_drift_threshold": 0.02,
+      "pluralsight_alerts": [
+        {
+          "quarter": "2023-10-01",
+          "alerts": 14,
+          "hit_next_q": 10
+        }
+      ]
     }
   }
 ]

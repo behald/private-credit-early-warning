@@ -98,8 +98,14 @@ def add_manager_features(df: pd.DataFrame) -> pd.DataFrame:
     """Cross lender features using other managers only."""
     df["manager"] = df["bdc_name"].map(manager_of)
     m = (df.groupby(["canonical_borrower_id", "quarter", "manager"])
-           .agg(m_mark=("mark", "mean"), m_drift=("mark_drift", "mean")).reset_index())
+           .agg(m_mark=("mark", "mean"), m_drift=("mark_drift", "mean"),
+                m_cost=("cost", "sum")).reset_index())
     m["m_cut"] = (m["m_drift"] < -0.01).astype(float)
+
+    m = m.sort_values(["canonical_borrower_id", "manager", "quarter"]).reset_index(drop=True)
+    m["m_prior_cost"] = m.groupby(["canonical_borrower_id", "manager"])["m_cost"].shift(1)
+    m["m_cost_ratio"] = m["m_cost"] / m["m_prior_cost"]
+    m["m_cost_stable"] = m["m_cost_ratio"].between(0.67, 1.5) | m["m_prior_cost"].isna()
 
     key = ["canonical_borrower_id", "quarter"]
     g = m.groupby(key)
@@ -119,8 +125,26 @@ def add_manager_features(df: pd.DataFrame) -> pd.DataFrame:
     m["others_share_cut"] = ((total_cut - m["m_cut"].fillna(0)) /
                              (m["num_managers"] - 1)).where(m["num_managers"] > 1)
 
+    stable_m = m[m["m_cost_stable"]]
+    cross = m[key + ["manager"]].merge(
+        stable_m[key + ["manager", "m_drift", "m_mark"]].rename(
+            columns={"manager": "other_mgr", "m_drift": "other_drift",
+                     "m_mark": "other_mark"}),
+        on=key)
+    cross = cross[cross["manager"] != cross["other_mgr"]]
+    if not cross.empty:
+        stable_agg = (cross.groupby(key + ["manager"])
+                      .agg(others_min_drift_stable=("other_drift", "min"),
+                           others_min_mark_stable=("other_mark", "min"))
+                      .reset_index())
+        m = m.merge(stable_agg, on=key + ["manager"], how="left")
+    else:
+        m["others_min_drift_stable"] = np.nan
+        m["others_min_mark_stable"] = np.nan
+
     df = df.merge(m[key + ["manager", "num_managers", "others_min_mark",
-                           "others_min_drift", "others_share_cut"]],
+                           "others_min_drift", "others_min_drift_stable",
+                           "others_min_mark_stable", "others_share_cut"]],
                   on=key + ["manager"], how="left")
     df["gap_to_others"] = df["mark"] - df["others_min_mark"]
     # How much the gap opened this quarter: positive when others just cut and I didn't
@@ -135,6 +159,7 @@ LGB_PARAMS = dict(
     objective="binary", learning_rate=0.03, num_leaves=15, min_data_in_leaf=50,
     feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1,
     lambda_l2=1.0, verbose=-1, seed=42, num_threads=1,
+    deterministic=True, force_row_wise=True,
 )
 NUM_ROUNDS = 300
 
@@ -297,7 +322,8 @@ MIN_ALERTS_FOR_THRESHOLD = 100
 def _sweep_thresholds(data: pd.DataFrame, base_rate: float) -> list[dict]:
     rows = []
     for th in ALERT_THRESHOLDS:
-        a = data[(data["others_min_drift"] <= th) & (data["mark_drift"] > ALERT_OWN_DRIFT)]
+        drift = data["others_min_drift_stable"].fillna(data["others_min_drift"])
+        a = data[(drift <= th) & (data["mark_drift"] > ALERT_OWN_DRIFT)]
         if len(a) == 0:
             rows.append({"others_cut_at_least": -th, "alerts": 0,
                          "hit_rate": 0.0, "lift": 0.0, "worst_quarter_hit": 0.0})
@@ -338,14 +364,30 @@ def laggard_alert_report(df: pd.DataFrame, full_df: pd.DataFrame,
     chosen = best_th
     logger.info(f"Laggard threshold chosen on pre-2024 data: {-chosen} points (hit rate {best_hit:.1%})")
 
-    df["alert"] = (df["others_min_drift"] <= chosen) & (df["mark_drift"] > ALERT_OWN_DRIFT)
+    stable_drift = df["others_min_drift_stable"].fillna(df["others_min_drift"])
+    df["alert"] = (stable_drift <= chosen) & (df["mark_drift"] > ALERT_OWN_DRIFT)
+    unstable_would_fire = (
+        (df["others_min_drift"] <= chosen) &
+        (df["mark_drift"] > ALERT_OWN_DRIFT) &
+        ~df["alert"]
+    )
+    stable_min_mark = df["others_min_mark_stable"].fillna(df["others_min_mark"])
+    df["needs_review"] = (
+        unstable_would_fire &
+        (df["others_min_drift"] < -0.50) &
+        (stable_min_mark > 0.95) &
+        (df["mark"] > 0.95)
+    )
+    df["alert"] = df["alert"] | df["needs_review"]
+
     ps = df[df["canonical_borrower_id"].isin(pluralsight_ids) & df["alert"]]
     ps_summary = [{"quarter": str(pd.Timestamp(q).date()), "alerts": len(g),
                    "hit_next_q": int(g["y"].sum())} for q, g in ps.groupby("quarter")]
 
     latest = df[df["quarter"] == df["quarter"].max()]
     alerts_df = latest[latest["alert"]][
-        ["canonical_borrower_id", "bdc_name", "manager", "mark", "others_min_drift"]
+        ["canonical_borrower_id", "bdc_name", "manager", "mark", "others_min_drift",
+         "needs_review"]
     ].copy()
 
     # Identify which other manager made the biggest cut, with before/after marks
@@ -377,6 +419,7 @@ def laggard_alert_report(df: pd.DataFrame, full_df: pd.DataFrame,
             "threshold_sweep_train": sweep_train,
             "threshold_sweep_test": sweep_test,
             "chosen_threshold": -chosen,
+            "own_drift_threshold": -ALERT_OWN_DRIFT,
             "pluralsight_alerts": ps_summary,
             "latest_quarter_alerts": alerts_df}
 

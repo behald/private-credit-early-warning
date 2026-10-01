@@ -162,20 +162,41 @@ def main():
             ON s.borrower_name_raw = m.borrower_name_raw
     """)
 
-    # Readable borrower names for the dashboard: most common raw spelling,
-    # then strip "Issuer Name" prefix and leading industry category phrases
     con.execute("""
         CREATE OR REPLACE TABLE dim_borrower AS
+        WITH raw AS (
+            SELECT canonical_borrower_id,
+                   REGEXP_REPLACE(
+                       REGEXP_REPLACE(MODE(borrower_name_raw),
+                           '^Issuer Name\s+', '', 'i'),
+                       '^(?:[\w/.,-]+\s+)*?(?:Services?|Products?|Equipment|Solutions?|Industries?|Distribution)\s+',
+                       '', 'i'
+                   ) AS cleaned,
+                   COUNT(DISTINCT cik) AS lenders_ever
+            FROM stg_soi_positions_resolved
+            GROUP BY canonical_borrower_id
+        ),
+        pass2 AS (
+            SELECT canonical_borrower_id,
+                   REGEXP_REPLACE(
+                       REGEXP_REPLACE(cleaned, '^[&\s]+', ''),
+                       '^(?:[\w/.,-]+\s+)*?(?:Services?|Products?|Equipment|Solutions?|Industries?|Distribution)\s+',
+                       '', 'i'
+                   ) AS borrower_name,
+                   lenders_ever
+            FROM raw
+        )
         SELECT canonical_borrower_id,
-               REGEXP_REPLACE(
-                   REGEXP_REPLACE(MODE(borrower_name_raw),
-                       '^Issuer Name\s+', '', 'i'),
-                   '^(?:[\w/.,-]+\s+)*?(?:Services?|Products?|Equipment|Solutions?|Industries?|Distribution)\s+',
-                   '', 'i'
-               ) AS borrower_name,
-               COUNT(DISTINCT cik) AS lenders_ever
-        FROM stg_soi_positions_resolved
-        GROUP BY canonical_borrower_id
+               CASE
+                   WHEN borrower_name IS NULL
+                        OR TRIM(borrower_name) = ''
+                        OR borrower_name ~ '^[0-9a-f]{6,}$'
+                        OR LENGTH(TRIM(borrower_name)) <= 2
+                   THEN 'Unnamed borrower'
+                   ELSE TRIM(borrower_name)
+               END AS borrower_name,
+               lenders_ever
+        FROM pass2
     """)
 
     # Written-off positions: fair_value=0 or mark in [0, 0.05). Negative marks dropped as data errors.

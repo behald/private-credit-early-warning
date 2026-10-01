@@ -145,6 +145,8 @@ def train_main_model(
         "verbose": -1,
         "seed": 42,
         "num_threads": 1,
+        "deterministic": True,
+        "force_row_wise": True,
     }
 
     callbacks = [lgb.log_evaluation(50), lgb.early_stopping(20)]
