@@ -366,19 +366,12 @@ def laggard_alert_report(df: pd.DataFrame, full_df: pd.DataFrame,
 
     stable_drift = df["others_min_drift_stable"].fillna(df["others_min_drift"])
     df["alert"] = (stable_drift <= chosen) & (df["mark_drift"] > ALERT_OWN_DRIFT)
-    unstable_would_fire = (
-        (df["others_min_drift"] <= chosen) &
-        (df["mark_drift"] > ALERT_OWN_DRIFT) &
-        ~df["alert"]
+    alert_from_stable = (
+        df["others_min_drift_stable"].notna() &
+        (df["others_min_drift_stable"] <= chosen) &
+        (df["mark_drift"] > ALERT_OWN_DRIFT)
     )
-    stable_min_mark = df["others_min_mark_stable"].fillna(df["others_min_mark"])
-    df["needs_review"] = (
-        unstable_would_fire &
-        (df["others_min_drift"] < -0.50) &
-        (stable_min_mark > 0.95) &
-        (df["mark"] > 0.95)
-    )
-    df["alert"] = df["alert"] | df["needs_review"]
+    df["needs_review"] = df["alert"] & ~alert_from_stable
 
     ps = df[df["canonical_borrower_id"].isin(pluralsight_ids) & df["alert"]]
     ps_summary = [{"quarter": str(pd.Timestamp(q).date()), "alerts": len(g),

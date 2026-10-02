@@ -131,9 +131,9 @@ The real evaluation. Trains and predicts on a rolling quarterly basis, scoring o
 
 A rule-based alert that fires when another manager has cut a borrower's mark by 4+ points this quarter but this lender's mark moved less than 2 points.
 
-**Cost stability filter:** Only considers cuts from managers whose total cost on the borrower stayed between 0.67x and 1.5x of the prior quarter. This prevents alerts from portfolio reshuffles being mistaken for credit calls.
+**Cost stability filter:** Only considers cuts from managers whose total cost on the borrower stayed between 0.67x and 1.5x of the prior quarter. This prevents alerts from portfolio reshuffles being mistaken for credit calls. When the alert fires but relied on a cost-unstable manager's drift, the row is flagged `needs_review=True` so the analyst knows the signal is less reliable.
 
-**Threshold selection:** Swept on pre-2024 data (Pluralsight excluded), validated on 2024+.
+**Threshold selection:** Best hit rate among thresholds with at least 100 alerts, swept on pre-2024 data (Pluralsight excluded), validated on 2024+.
 
 | | Pre-2024 (train) | 2024+ (out of sample) |
 |---|---|---|

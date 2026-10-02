@@ -32,7 +32,10 @@ def has_table(con: duckdb.DuckDBPyConnection, name: str) -> bool:
 def name_expr(con: duckdb.DuckDBPyConnection, alias: str = "s") -> tuple[str, str]:
     """SQL pieces to show a readable borrower name when dim_borrower exists."""
     if has_table(con, "dim_borrower"):
-        return (f"COALESCE(d.borrower_name, {alias}.canonical_borrower_id)",
+        expr = (f"CASE WHEN d.borrower_name IS NOT NULL THEN d.borrower_name "
+                f"WHEN {alias}.canonical_borrower_id ~ '^[0-9a-f]{{6,}}$' THEN 'Unnamed borrower' "
+                f"ELSE {alias}.canonical_borrower_id END")
+        return (expr,
                 f"LEFT JOIN dim_borrower d ON d.canonical_borrower_id = {alias}.canonical_borrower_id")
     return f"{alias}.canonical_borrower_id", ""
 DISCLAIMER = (
@@ -279,7 +282,7 @@ def laggard_alerts_view(con: duckdb.DuckDBPyConnection) -> None:
             st.caption(f"Base rate: {alert.get('base_rate_excl_pluralsight_test', 0):.1%}")
             st.dataframe(pd.DataFrame(alert["threshold_sweep_test"]), use_container_width=True)
 
-        st.info(f"Chosen threshold: others cut at least **{int(chosen_pts * 100)} points** (best hit rate on pre-2024 data)")
+        st.info(f"Chosen threshold: others cut at least **{int(chosen_pts * 100)} points** (best hit rate among thresholds with 100+ alerts on pre-2024 data)")
 
         if alert.get("pluralsight_alerts"):
             ps = alert["pluralsight_alerts"][0]
