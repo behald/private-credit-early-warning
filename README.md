@@ -134,7 +134,9 @@ tests/                     Unit tests
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture document: pipeline diagram, design tradeoffs, production improvements, and detailed results.
+**[Interactive Architecture Diagram](https://behald.github.io/private-credit-early-warning/)** — clickable pipeline walkthrough with explanations of every concept (BDCs, marks, entity resolution, cross-lender signals, laggard alerts, cost stability filters). Best way to understand the system.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full text architecture document: pipeline diagram, design tradeoffs, production improvements, and detailed results.
 
 ## Tech stack
 

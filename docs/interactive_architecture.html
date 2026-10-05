@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Private Credit Radar — Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F5F3EE;
+  --surface:#FFFFFF;
+  --surface2:#EDEBE6;
+  --navy:#0F1B2D;
+  --navy-light:#EEF2F7;
+  --blue:#2563EB;
+  --blue-light:#EFF6FF;
+  --green:#059669;
+  --green-light:#ECFDF5;
+  --amber:#D97706;
+  --amber-light:#FFFBEB;
+  --rose:#BE123C;
+  --rose-light:#FFF1F2;
+  --teal:#0D9488;
+  --teal-light:#F0FDFA;
+  --purple:#7C3AED;
+  --purple-light:#F5F3FF;
+  --slate:#475569;
+  --slate-light:#F1F5F9;
+  --text:#1A1A2E;
+  --text2:#4B5563;
+  --text3:#94A3B8;
+  --border:#E2DED6;
+  --border2:#D1CBC0;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.12);
+  --radius:10px;
+  --font:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+  --display:'Playfair Display',serif;
+}
+body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:100vh;}
+
+.page{max-width:1160px;margin:0 auto;padding:40px 24px 80px;}
+
+/* HEADER */
+.header{text-align:center;margin-bottom:56px;}
+.header-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;}
+.header-title{font-family:var(--display);font-size:48px;color:var(--text);line-height:1.1;margin-bottom:10px;}
+.header-title span{color:var(--navy);}
+.header-sub{font-size:15px;color:var(--text2);max-width:620px;margin:0 auto 20px;line-height:1.6;}
+.header-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.badge{font-family:var(--mono);font-size:10px;padding:4px 12px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--surface);}
+.badge.green{border-color:#86EFAC;color:var(--green);background:var(--green-light);}
+.badge.amber{border-color:#FCD34D;color:var(--amber);background:var(--amber-light);}
+.badge.navy{border-color:#93C5FD;color:var(--blue);background:var(--blue-light);}
+
+/* SECTION LABEL */
+.section-label{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.section-label-text{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+.section-label-line{flex:1;height:1px;background:var(--border);}
+
+/* FLOW ARROW */
+.flow-arrow{display:flex;flex-direction:column;align-items:center;gap:2px;margin:6px 0;color:var(--text3);}
+.flow-arrow-line{width:1px;height:20px;background:var(--border2);}
+.flow-arrow-tip{font-size:10px;}
+.flow-arrow-label{font-family:var(--mono);font-size:10px;color:var(--text3);}
+
+/* LAYER PANELS */
+.layer{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:8px;box-shadow:var(--shadow);}
+.layer-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.layer-title{font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;}
+.layer-subtitle{font-family:var(--mono);font-size:10px;color:var(--text3);}
+
+/* COMPONENT CARDS */
+.comp-grid{display:grid;gap:10px;}
+.comp-grid-2{grid-template-columns:1fr 1fr;}
+.comp-grid-3{grid-template-columns:1fr 1fr 1fr;}
+.comp-grid-4{grid-template-columns:repeat(4,1fr);}
+.comp-grid-5{grid-template-columns:repeat(5,1fr);}
+
+.comp{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;position:relative;transition:border-color .15s,box-shadow .15s;min-width:0;}
+.comp:hover{border-color:var(--border2);box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.comp-icon{font-size:20px;margin-bottom:6px;display:block;}
+.comp-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.comp-detail{font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.5;}
+
+/* CONCEPT CHIPS */
+.concept-chip{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;border:1px solid;transition:all .15s;margin:2px;user-select:none;}
+.concept-chip:hover{transform:translateY(-1px);}
+.concept-chip-blue{border-color:#93C5FD;color:var(--blue);background:var(--blue-light);}
+.concept-chip-green{border-color:#86EFAC;color:var(--green);background:var(--green-light);}
+.concept-chip-purple{border-color:#C4B5FD;color:var(--purple);background:var(--purple-light);}
+.concept-chip-amber{border-color:#FCD34D;color:var(--amber);background:var(--amber-light);}
+.concept-chip-rose{border-color:#FDA4AF;color:var(--rose);background:var(--rose-light);}
+.concept-chip-teal{border-color:#5EEAD4;color:var(--teal);background:var(--teal-light);}
+.concept-chip-navy{border-color:#93C5FD;color:var(--navy);background:var(--navy-light);}
+.chip-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+/* DATA FLOW ARROWS BETWEEN COMPS */
+.comp-arrow{display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;padding:0 4px;align-self:center;}
+
+/* INLINE FLOW ROW */
+.flow-row{display:flex;align-items:stretch;gap:8px;}
+.flow-row .comp{flex:1;min-width:0;}
+
+/* DATA TAG */
+.data-tag{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);margin-top:4px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,10,20,0.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border-radius:14px;max-width:640px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(16px);transition:transform .25s;position:relative;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-header{padding:22px 24px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;border-radius:14px 14px 0 0;}
+.modal-close{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2);transition:all .15s;}
+.modal-close:hover{background:var(--border);color:var(--text);}
+.modal-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
+.modal-title{font-size:20px;font-weight:700;color:var(--text);}
+.modal-body{padding:20px 24px 24px;}
+.modal-section{margin-bottom:18px;}
+.modal-section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:6px;}
+.modal-text{font-size:13px;color:var(--text2);line-height:1.7;}
+.modal-code{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:0 6px 6px 0;padding:10px 14px;font-family:var(--mono);font-size:11.5px;color:var(--text);line-height:1.8;margin:8px 0;overflow-x:auto;}
+.modal-code .cm{color:var(--text3);}
+.modal-example{background:var(--green-light);border:1px solid #86EFAC;border-radius:8px;padding:12px 14px;margin:8px 0;}
+.modal-example-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--green);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;}
+.modal-example-text{font-size:12px;color:#166534;line-height:1.6;}
+.modal-analogy{background:var(--amber-light);border:1px solid #FCD34D;border-radius:8px;padding:12px 14px;margin:8px 0;}
+.modal-analogy-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--amber);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;}
+.modal-analogy-text{font-size:12px;color:#92400E;line-height:1.6;}
+.modal-warning{background:var(--rose-light);border:1px solid #FDA4AF;border-radius:8px;padding:12px 14px;margin:8px 0;}
+.modal-warning-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--rose);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;}
+.modal-warning-text{font-size:12px;color:#881337;line-height:1.6;}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;}
+.stat{flex:1;min-width:100px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.stat-val{font-size:22px;font-weight:700;color:var(--text);}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* TOOL STACK GRID */
+.tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
+.tool-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;}
+.tool-icon{font-size:20px;display:block;margin-bottom:4px;}
+.tool-name{font-size:11px;font-weight:600;color:var(--text);}
+.tool-role{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:1px;}
+
+/* TRADEOFF CARDS */
+.tradeoff{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:8px;}
+.tradeoff-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.tradeoff-row{display:flex;gap:12px;font-size:12px;line-height:1.6;flex-wrap:wrap;}
+.tradeoff-chose{flex:1;min-width:180px;color:var(--green);background:var(--green-light);border-radius:6px;padding:8px 10px;}
+.tradeoff-gave{flex:1;min-width:180px;color:var(--rose);background:var(--rose-light);border-radius:6px;padding:8px 10px;}
+.tradeoff-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;font-weight:500;}
+
+/* CASE STUDY TABLE */
+.case-table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0;}
+.case-table th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:6px 10px;text-align:left;border-bottom:2px solid var(--border);}
+.case-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2);font-variant-numeric:tabular-nums;}
+.case-table .alert-cell{color:var(--amber);font-weight:600;}
+.case-table .distress-cell{color:var(--rose);font-weight:600;}
+
+/* FOOTER */
+.footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.footer-left{font-family:var(--mono);font-size:11px;color:var(--text3);}
+.footer-stats{display:flex;gap:24px;flex-wrap:wrap;}
+.fstat-val{font-size:20px;font-weight:700;}
+.fstat-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+
+/* STEP LABEL */
+.step-label{font-family:var(--mono);font-size:10px;font-weight:500;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;}
+
+@media(max-width:700px){
+  .comp-grid-3,.comp-grid-4,.comp-grid-5,.comp-grid-2,.flow-row,.tool-grid,.stats-row,.tradeoff-row{grid-template-columns:1fr;flex-direction:column;}
+  .header-title{font-size:32px;}
+  .footer{flex-direction:column;align-items:flex-start;}
+  .flow-row .comp-arrow{transform:rotate(90deg);}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-eyebrow">Capital Markets &middot; Credit Risk &middot; Divaye Behal &middot; 2024</div>
+  <h1 class="header-title">Private Credit <span>Radar</span></h1>
+  <p class="header-sub">Complete pipeline architecture for an early warning system that reads real SEC filings, matches borrowers across 139 lenders, and flags loans likely to be marked down next quarter. Click any highlighted term to understand how it works.</p>
+  <div class="header-badges">
+    <span class="badge green">Real SEC Data</span>
+    <span class="badge amber">Early Warning Alerts</span>
+    <span class="badge">730K raw rows</span>
+    <span class="badge">13,251 borrowers</span>
+    <span class="badge navy">7-tab Dashboard</span>
+    <span class="badge">~45s pipeline</span>
+  </div>
+</div>
+
+<!-- ══ CASE STUDY: PLURALSIGHT ═══════════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">the idea — one real case from the data</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--amber);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--amber);">Pluralsight — why cross-lender signals matter</div>
+      <div class="layer-subtitle">16 BDCs lent to the same borrower. one cut first. the rest followed.</div>
+    </div>
+    <span class="concept-chip concept-chip-amber" onclick="openModal('bdc')"><span class="chip-dot"></span>what is a BDC?</span>
+  </div>
+  <div style="overflow-x:auto;">
+  <table class="case-table">
+    <thead><tr><th>Quarter</th><th>Ares Capital</th><th>Blue Owl</th><th>Golub Capital</th><th>What happened</th></tr></thead>
+    <tbody>
+      <tr><td>Q3 2023</td><td>0.94</td><td>0.97</td><td>1.00</td><td class="alert-cell">14 laggard alerts fire</td></tr>
+      <tr><td>Q4 2023</td><td>0.89</td><td>0.97</td><td>1.00</td><td>Ares deepens cut</td></tr>
+      <tr><td>Q1 2024</td><td>0.85</td><td>0.84</td><td>0.98</td><td class="distress-cell">10 of 14 alerted lenders marked down</td></tr>
+      <tr><td>Q2 2024</td><td>0.48</td><td>0.47</td><td>0.54</td><td class="distress-cell">All 15 below 0.55</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:8px;">
+    Marks are <strong>fair value / cost</strong>. A mark of 0.94 means the lender values the loan at 94 cents on the dollar. The rolling backtest model ranked Pluralsight lenders in the <strong>97th percentile</strong> for risk the quarter before the collapse.
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-tip">&#9660;</div><div class="flow-arrow-label">how the system detects this pattern</div></div>
+
+<!-- ══ STAGE 1: DATA SOURCE ══════════════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">stage 1 — data source — every US BDC's quarterly SEC filing</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--navy);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--navy);">SEC EDGAR — Data Source</div>
+      <div class="layer-subtitle">SEC DERA BDC Data Sets &middot; Schedule of Investments &middot; soi.tsv</div>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+      <span class="concept-chip concept-chip-navy" onclick="openModal('sec')"><span class="chip-dot"></span>SEC EDGAR filing</span>
+      <span class="concept-chip concept-chip-navy" onclick="openModal('soi')"><span class="chip-dot"></span>schedule of investments</span>
+    </div>
+  </div>
+  <div class="comp-grid comp-grid-3">
+    <div class="comp">
+      <span class="comp-icon">&#128220;</span>
+      <div class="comp-name">7 Quarterly Zips</div>
+      <div class="comp-detail">SEC publishes structured BDC data quarterly. each zip contains soi.tsv — one row per holding, per lender, per quarter.</div>
+      <div class="data-tag">Q2 2023 — Q4 2024</div>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">&#128202;</span>
+      <div class="comp-name">730,310 Raw Rows</div>
+      <div class="comp-detail">every debt and equity position reported by 139 BDCs. includes fair value, cost, borrower name, investment type, industry.</div>
+      <div class="data-tag">soi_all_bdcs.parquet</div>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">&#128176;</span>
+      <div class="comp-name">Real Public Data</div>
+      <div class="comp-detail">no synthetic data, no API keys, no cost. all data is freely available from SEC DERA. anyone can reproduce this pipeline.</div>
+      <div class="data-tag">$0 data cost</div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-tip">&#9660;</div><div class="flow-arrow-label">filter_bdc.py shrinks 7 zips into one parquet &rarr; ingest_sec_bdc.py cleans it</div></div>
+
+<!-- ══ STAGE 2: INGESTION ════════════════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">stage 2 — ingestion — clean, deduplicate, filter into DuckDB</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--blue);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--blue);">Ingestion Layer</div>
+      <div class="layer-subtitle">src/ingest_sec_bdc.py &middot; 8 cleaning rules &middot; 730K &rarr; 161K rows</div>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+      <span class="concept-chip concept-chip-blue" onclick="openModal('mark')"><span class="chip-dot"></span>what is a mark?</span>
+      <span class="concept-chip concept-chip-blue" onclick="openModal('duckdb')"><span class="chip-dot"></span>DuckDB warehouse</span>
+    </div>
+  </div>
+
+  <div class="flow-row" style="margin-bottom:10px;">
+    <div class="comp">
+      <span class="comp-icon">&#128451;</span>
+      <div class="comp-name">Raw Parquet</div>
+      <div class="comp-detail">730,310 rows. debt + equity. multiple filing periods per zip. amended filings.</div>
+      <div class="data-tag">soi_all_bdcs.parquet</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp">
+      <span class="comp-icon">&#128295;</span>
+      <div class="comp-name">8 Cleaning Rules</div>
+      <div class="comp-detail">own-period only &middot; dedup amended filings &middot; debt only &middot; drop subtotals &middot; remap mislabeled cols &middot; drop zero-cost &middot; mark filter [0.05, 2.0] &middot; strip category prefixes</div>
+      <div class="data-tag">226 learned prefixes</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp">
+      <span class="comp-icon">&#128024;</span>
+      <div class="comp-name">DuckDB Warehouse</div>
+      <div class="comp-detail">raw_soi_positions (187K) + stg_soi_positions (161K) + stg_written_off (988 rows for marks &lt; 0.05)</div>
+      <div class="data-tag">warehouse.duckdb</div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val" style="color:var(--blue);">187,301</div><div class="stat-label">clean rows</div></div>
+    <div class="stat"><div class="stat-val">161,017</div><div class="stat-label">staged debt</div></div>
+    <div class="stat"><div class="stat-val">2,522</div><div class="stat-label">dropped (data errors)</div></div>
+    <div class="stat"><div class="stat-val">139</div><div class="stat-label">BDC lenders</div></div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-tip">&#9660;</div><div class="flow-arrow-label">161K staged positions &rarr; entity_resolution.py</div></div>
+
+<!-- ══ STAGE 3: ENTITY RESOLUTION ════════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">stage 3 — entity resolution — same borrower, different names</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--teal);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--teal);">Entity Resolution</div>
+      <div class="layer-subtitle">src/entity_resolution.py &middot; normalize + MD5 hash &middot; 16,717 &rarr; 13,251 borrowers</div>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+      <span class="concept-chip concept-chip-teal" onclick="openModal('entity')"><span class="chip-dot"></span>entity resolution</span>
+      <span class="concept-chip concept-chip-teal" onclick="openModal('manager')"><span class="chip-dot"></span>manager grouping</span>
+    </div>
+  </div>
+
+  <div class="flow-row">
+    <div class="comp">
+      <span class="comp-icon">&#128196;</span>
+      <div class="comp-name">Raw Names</div>
+      <div class="comp-detail">"Acrisure LLC"<br/>"ACRISURE, LLC"<br/>"Acrisure Holdings"<br/>16,717 unique strings</div>
+      <div class="data-tag">borrower_name_raw</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp">
+      <span class="comp-icon">&#128260;</span>
+      <div class="comp-name">Normalize + Hash</div>
+      <div class="comp-detail">lowercase &middot; strip LLC/Inc/Corp &middot; expand abbreviations &middot; remove punctuation &middot; MD5 hash of normalized form</div>
+      <div class="data-tag">deterministic, fast</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp">
+      <span class="comp-icon">&#128279;</span>
+      <div class="comp-name">Canonical IDs</div>
+      <div class="comp-detail">13,251 unique borrowers. borrower_canonical_map table. dim_borrower with clean display names.</div>
+      <div class="data-tag">13,251 canonical</div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px;font-size:12px;color:var(--text2);line-height:1.6;">
+    <strong>Why this matters:</strong> Without entity resolution, Pluralsight would appear as 16 separate borrowers. The system would never know that Ares and Blue Owl are lending to the same company, and cross-lender signals would be invisible.
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-tip">&#9660;</div><div class="flow-arrow-label">resolved positions &rarr; quarterly panel &rarr; signals.py</div></div>
+
+<!-- ══ STAGE 4: SIGNAL COMPUTATION ═══════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">stage 4 — signals — mark drift, dispersion, cross-lender consensus</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--green);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--green);">Signal Engine</div>
+      <div class="layer-subtitle">src/signals.py &middot; 10 features per position &middot; 96,780 panel rows</div>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+      <span class="concept-chip concept-chip-green" onclick="openModal('crosslender')"><span class="chip-dot"></span>cross-lender signal</span>
+      <span class="concept-chip concept-chip-green" onclick="openModal('dispersion')"><span class="chip-dot"></span>mark dispersion</span>
+    </div>
+  </div>
+
+  <div class="comp-grid comp-grid-2" style="margin-bottom:10px;">
+    <div class="comp">
+      <span class="comp-icon">&#128200;</span>
+      <div class="comp-name">Single-Lender Features</div>
+      <div class="comp-detail">
+        mark (fair_value / cost)<br/>
+        mark_drift (change vs prior Q)<br/>
+        prior_mark (LAG)<br/>
+        pik_migration &middot; par_migration<br/>
+        pik_flag &middot; non_accrual_flag
+      </div>
+      <div class="data-tag">this lender's own view</div>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">&#128101;</span>
+      <div class="comp-name">Cross-Lender Features</div>
+      <div class="comp-detail">
+        num_lenders (how many hold this borrower)<br/>
+        avg_mark_across_lenders (consensus)<br/>
+        mark_dispersion (std dev across lenders)<br/>
+        lender_mark_vs_avg (deviation from group)
+      </div>
+      <div class="data-tag">what the group thinks</div>
+    </div>
+  </div>
+
+  <div class="comp-grid comp-grid-2">
+    <div class="comp" style="border-color:#86EFAC;">
+      <span class="comp-icon">&#128161;</span>
+      <div class="comp-name">Key Insight</div>
+      <div class="comp-detail">avg_mark_across_lenders is the #1 predictor. what the group thinks matters more than what any single lender reports.</div>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">&#9888;&#65039;</span>
+      <div class="comp-name">Watchlist</div>
+      <div class="comp-detail">4,810 borrower entries where any lender's mark &lt; 0.90 or drifted &gt; 5 points. the first filter for analyst attention.</div>
+      <div class="data-tag">mart_watchlist</div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-tip">&#9660;</div><div class="flow-arrow-label">96,780 signal rows feed both ML model and rule-based alerts</div></div>
+
+<!-- ══ STAGE 5: ML + BACKTEST ════════════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">stage 5 — ML + backtest — predict markdowns, validate honestly</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--purple);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--purple);">ML &amp; Rolling Backtest</div>
+      <div class="layer-subtitle">src/model.py &middot; src/newly_distressed.py &middot; LightGBM &middot; 5-quarter rolling evaluation</div>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+      <span class="concept-chip concept-chip-purple" onclick="openModal('lightgbm')"><span class="chip-dot"></span>LightGBM</span>
+      <span class="concept-chip concept-chip-purple" onclick="openModal('prauc')"><span class="chip-dot"></span>PR-AUC metric</span>
+      <span class="concept-chip concept-chip-purple" onclick="openModal('backtest')"><span class="chip-dot"></span>rolling backtest</span>
+    </div>
+  </div>
+
+  <!-- Model training -->
+  <div class="step-label" style="color:var(--purple);">Step 5a &mdash; LightGBM Model &middot; time-based split</div>
+  <div class="flow-row" style="margin-bottom:14px;">
+    <div class="comp">
+      <span class="comp-icon">&#128202;</span>
+      <div class="comp-name">72,943 Training Rows</div>
+      <div class="comp-detail">only healthy positions (mark &ge; 0.80). target: will this loan be marked down 5+ points next quarter? base rate ~3%.</div>
+      <div class="data-tag">class-weighted</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp">
+      <span class="comp-icon">&#127795;</span>
+      <div class="comp-name">LightGBM</div>
+      <div class="comp-detail">gradient boosting on 10 features. deterministic mode. early stopping at 58 rounds. reproducible (seed=42, hash=0).</div>
+      <div class="data-tag">58 trees</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp">
+      <span class="comp-icon">&#128200;</span>
+      <div class="comp-name">Rolling Predictions</div>
+      <div class="comp-detail">each quarter, model trains on earlier data only. never sees the future. 5 test quarters evaluated.</div>
+      <div class="data-tag">out-of-sample only</div>
+    </div>
+  </div>
+
+  <!-- Results table -->
+  <div class="step-label" style="color:var(--purple);">Results &mdash; Target B: big markdown (&ge; 5 pts), ~3% base rate</div>
+  <div style="overflow-x:auto;">
+  <table class="case-table" style="margin-bottom:0;">
+    <thead><tr><th>Method</th><th>PR-AUC</th><th>vs Random</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Rule: sort by lowest mark</td><td>0.105</td><td>3.5x</td><td>Simple baseline</td></tr>
+      <tr><td>LightGBM, original features</td><td>0.146</td><td>4.9x</td><td>Single-lender only</td></tr>
+      <tr><td style="font-weight:600;">LightGBM, + cross-lender</td><td style="font-weight:600;color:var(--green);">0.158</td><td style="font-weight:600;">5.3x</td><td style="color:var(--green);font-weight:600;">+0.012 from cross-lender</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px;">Cross-lender features add +0.012 PR-AUC (90% CI: +0.004 to +0.021, resampled by borrower)</div>
+</div>
+
+<div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-tip">&#9660;</div><div class="flow-arrow-label">alongside the model: a simpler rule-based alert catches laggards</div></div>
+
+<!-- ══ STAGE 6: LAGGARD ALERT ════════════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">stage 6 — laggard alert — one lender cut, did the others follow?</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--amber);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--amber);">Laggard Alert Engine</div>
+      <div class="layer-subtitle">src/newly_distressed.py &middot; cost-stable drift check &middot; 4-point threshold</div>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+      <span class="concept-chip concept-chip-amber" onclick="openModal('laggard')"><span class="chip-dot"></span>laggard alert</span>
+      <span class="concept-chip concept-chip-amber" onclick="openModal('coststable')"><span class="chip-dot"></span>cost stability filter</span>
+    </div>
+  </div>
+
+  <div class="flow-row" style="margin-bottom:14px;">
+    <div class="comp">
+      <span class="comp-icon">&#128269;</span>
+      <div class="comp-name">Detect: manager cut 4+ pts</div>
+      <div class="comp-detail">another cost-stable manager marked this borrower down by 4+ points this quarter.</div>
+      <div class="data-tag">lead signal</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp">
+      <span class="comp-icon">&#128232;</span>
+      <div class="comp-name">Check: this lender flat</div>
+      <div class="comp-detail">this lender's mark moved less than 2 points. they may not yet have priced in the same credit event.</div>
+      <div class="data-tag">lag signal</div>
+    </div>
+    <div class="comp-arrow">&rarr;</div>
+    <div class="comp" style="border-color:#FCD34D;">
+      <span class="comp-icon">&#128680;</span>
+      <div class="comp-name">Alert Fires</div>
+      <div class="comp-detail">analyst gets: borrower name, who cut, by how much, this lender's current mark. needs_review flag if cost unstable.</div>
+      <div class="data-tag">laggard_alerts_latest.csv</div>
+    </div>
+  </div>
+
+  <div class="comp-grid comp-grid-2">
+    <div class="comp">
+      <div class="comp-name">Pre-2024 (training)</div>
+      <div class="comp-detail" style="font-size:13px;">
+        <strong>235</strong> alerts &middot; <strong>13.2%</strong> hit rate &middot; <strong>4.8x</strong> lift vs 3% base
+      </div>
+    </div>
+    <div class="comp" style="border-color:#FCD34D;">
+      <div class="comp-name">2024+ (out of sample)</div>
+      <div class="comp-detail" style="font-size:13px;">
+        <strong>249</strong> alerts &middot; <strong>10.0%</strong> hit rate &middot; <strong>3.4x</strong> lift vs 3% base
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-tip">&#9660;</div><div class="flow-arrow-label">all results &rarr; Streamlit dashboard</div></div>
+
+<!-- ══ STAGE 7: SERVING ══════════════════════════════════════════════════════ -->
+<div class="section-label"><span class="section-label-text">stage 7 — serving — interactive dashboard for analysts</span><div class="section-label-line"></div></div>
+<div class="layer" style="border-left:3px solid var(--rose);">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title" style="color:var(--rose);">Streamlit Dashboard</div>
+      <div class="layer-subtitle">src/app.py &middot; 7 tabs &middot; reads precomputed DuckDB &middot; Plotly charts</div>
+    </div>
+  </div>
+  <div class="comp-grid comp-grid-4">
+    <div class="comp"><span class="comp-icon">&#127758;</span><div class="comp-name">Market Overview</div><div class="comp-detail">mark distributions, quarter trends, sector breakdown</div></div>
+    <div class="comp"><span class="comp-icon">&#128270;</span><div class="comp-name">Borrower Drilldown</div><div class="comp-detail">search any borrower. defaults to Pluralsight. mark history across all lenders.</div></div>
+    <div class="comp"><span class="comp-icon">&#127970;</span><div class="comp-name">Lender Comparison</div><div class="comp-detail">compare marking patterns across BDC managers</div></div>
+    <div class="comp"><span class="comp-icon">&#9888;&#65039;</span><div class="comp-name">Watchlist</div><div class="comp-detail">borrowers where marks &lt; 0.90 or drifted &gt; 5 pts</div></div>
+  </div>
+  <div class="comp-grid comp-grid-3" style="margin-top:10px;">
+    <div class="comp" style="border-color:#FDA4AF;"><span class="comp-icon">&#128680;</span><div class="comp-name">Laggard Alerts</div><div class="comp-detail">current quarter alerts with cost-stability flags</div></div>
+    <div class="comp"><span class="comp-icon">&#128201;</span><div class="comp-name">Backtest Results</div><div class="comp-detail">rolling PR-AUC, hit rates, Pluralsight case study</div></div>
+    <div class="comp"><span class="comp-icon">&#128736;</span><div class="comp-name">Architecture</div><div class="comp-detail">pipeline diagram, file map, table lineage</div></div>
+  </div>
+</div>
+
+<!-- ══ TOOLS ═════════════════════════════════════════════════════════════════ -->
+<div style="margin-top:32px;">
+<div class="section-label"><span class="section-label-text">tools — and why these</span><div class="section-label-line"></div></div>
+<div class="layer">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title">Complete Technology Stack</div>
+      <div class="layer-subtitle">every tool chosen for a reason &middot; zero cloud cost &middot; zero API keys</div>
+    </div>
+  </div>
+  <div class="tool-grid">
+    <div class="tool-item"><span class="tool-icon">&#128013;</span><div class="tool-name">Python 3.11</div><div class="tool-role">pipeline + ML + dashboard</div></div>
+    <div class="tool-item"><span class="tool-icon">&#128024;</span><div class="tool-name">DuckDB</div><div class="tool-role">analytical warehouse</div></div>
+    <div class="tool-item"><span class="tool-icon">&#127795;</span><div class="tool-name">LightGBM</div><div class="tool-role">gradient boosting</div></div>
+    <div class="tool-item"><span class="tool-icon">&#128202;</span><div class="tool-name">scikit-learn</div><div class="tool-role">baseline + metrics</div></div>
+    <div class="tool-item"><span class="tool-icon">&#128200;</span><div class="tool-name">pandas</div><div class="tool-role">dataframe interop</div></div>
+    <div class="tool-item"><span class="tool-icon">&#128506;</span><div class="tool-name">Streamlit</div><div class="tool-role">interactive dashboard</div></div>
+    <div class="tool-item"><span class="tool-icon">&#128208;</span><div class="tool-name">Plotly</div><div class="tool-role">interactive charts</div></div>
+    <div class="tool-item"><span class="tool-icon">&#128230;</span><div class="tool-name">Parquet</div><div class="tool-role">columnar storage</div></div>
+  </div>
+  <div style="margin-top:16px;">
+    <div class="step-label" style="color:var(--text3);">Not used — and why not</div>
+    <div class="comp-grid comp-grid-3">
+      <div class="comp">
+        <div class="comp-name">dbt</div>
+        <div class="comp-detail">planned but dropped. DuckDB SQL in run_pipeline.py is simpler for a single-file warehouse with no incremental loads.</div>
+      </div>
+      <div class="comp">
+        <div class="comp-name">sentence-transformers</div>
+        <div class="comp-detail">available in code but disabled. pure normalization + MD5 gives good enough matching without a 200MB model download.</div>
+      </div>
+      <div class="comp">
+        <div class="comp-name">Airflow / Prefect</div>
+        <div class="comp-detail">no scheduler needed. the pipeline is a single script that runs in 45 seconds. not worth the overhead.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TRADEOFFS ═════════════════════════════════════════════════════════════ -->
+<div style="margin-top:32px;">
+<div class="section-label"><span class="section-label-text">tradeoffs — what we chose and what we gave up</span><div class="section-label-line"></div></div>
+<div class="layer">
+  <div class="layer-header">
+    <div>
+      <div class="layer-title">Design Tradeoffs</div>
+      <div class="layer-subtitle">every architecture is a set of bets &middot; here are ours</div>
+    </div>
+  </div>
+
+  <div class="tradeoff">
+    <div class="tradeoff-title">Mark (fair_value / cost) as the core signal</div>
+    <div class="tradeoff-row">
+      <div class="tradeoff-chose"><div class="tradeoff-label">Chose</div>Ratio that BDCs actually report and that drives their NAV. Comparable across positions of different sizes.</div>
+      <div class="tradeoff-gave"><div class="tradeoff-label">Gave up</div>Raw fair value or spread-to-benchmark. Cost can change in restructuring, making the ratio noisy. Mitigated with cost stability filter.</div>
+    </div>
+  </div>
+
+  <div class="tradeoff">
+    <div class="tradeoff-title">Simple rule wins for Target A (crosses 0.80)</div>
+    <div class="tradeoff-row">
+      <div class="tradeoff-chose"><div class="tradeoff-label">Chose</div>Report honestly that sort-by-lowest-mark beats the model (PR-AUC 0.227 vs 0.209). Threshold-crossing is nearly deterministic from current mark.</div>
+      <div class="tradeoff-gave"><div class="tradeoff-label">Gave up</div>Could have added features until the model beat the rule. Would be overfitting to noise. ML adds real value only on Target B (big markdown).</div>
+    </div>
+  </div>
+
+  <div class="tradeoff">
+    <div class="tradeoff-title">Entity resolution without embeddings</div>
+    <div class="tradeoff-row">
+      <div class="tradeoff-chose"><div class="tradeoff-label">Chose</div>Normalize + MD5 hash. Deterministic, fast, no model dependency. Handles 95%+ of variation (punctuation, legal suffixes).</div>
+      <div class="tradeoff-gave"><div class="tradeoff-label">Gave up</div>Fuzzy matches across name changes. Code for embedding path exists and can be enabled. Would add 200MB dependency + 30s runtime.</div>
+    </div>
+  </div>
+
+  <div class="tradeoff">
+    <div class="tradeoff-title">Cost-stable drift only for laggard alerts</div>
+    <div class="tradeoff-row">
+      <div class="tradeoff-chose"><div class="tradeoff-label">Chose</div>Only fire when cutting manager's cost is stable (0.67x–1.5x of prior Q). Ensures mark cut reflects a genuine credit call, not a portfolio reshuffle.</div>
+      <div class="tradeoff-gave"><div class="tradeoff-label">Gave up</div>Alerts from managers actively trading the position. May miss real cuts bundled with sells. needs_review flag covers borderline cases.</div>
+    </div>
+  </div>
+
+  <div class="tradeoff">
+    <div class="tradeoff-title">7 quarters of history</div>
+    <div class="tradeoff-row">
+      <div class="tradeoff-chose"><div class="tradeoff-label">Chose</div>Use all available SEC DERA data (Q4 2022 – Q3 2024). Out-of-sample validation on both targets. Infrastructure ready for more quarters.</div>
+      <div class="tradeoff-gave"><div class="tradeoff-label">Gave up</div>Statistical power. Short history means wide confidence intervals. Results are honest about this limitation.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ PRODUCTION IMPROVEMENTS ════════════════════════════════════════════ -->
+<div style="margin-top:32px;">
+<div class="section-label"><span class="section-label-text">if this went to production — what would change</span><div class="section-label-line"></div></div>
+<div class="layer">
+  <div class="comp-grid comp-grid-2">
+    <div class="comp"><span class="comp-icon">&#9889;</span><div class="comp-name">Incremental Ingestion</div><div class="comp-detail">detect new filings by accession number, append only new quarters. runtime: 45s &rarr; &lt;5s.</div></div>
+    <div class="comp"><span class="comp-icon">&#128172;</span><div class="comp-name">Alert Delivery</div><div class="comp-detail">push laggard alerts to Slack/email with borrower name, who cut, by how much.</div></div>
+    <div class="comp"><span class="comp-icon">&#128221;</span><div class="comp-name">Non-Accrual Extraction</div><div class="comp-detail">NLP extraction from filing footnotes. non-accrual status is buried in free text, not tagged columns.</div></div>
+    <div class="comp"><span class="comp-icon">&#128203;</span><div class="comp-name">Model Monitoring</div><div class="comp-detail">track PR-AUC and hit rate per quarter. alert if lift drops below 2x for two consecutive quarters.</div></div>
+  </div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-left">Private Credit Radar &middot; SEC EDGAR Pipeline &middot; Divaye Behal &middot; 2024<br/>github.com/behald/private-credit-early-warning</div>
+  <div class="footer-stats">
+    <div class="stat" style="min-width:70px;"><div class="fstat-val" style="color:var(--blue);">161K</div><div class="fstat-label">Positions</div></div>
+    <div class="stat" style="min-width:70px;"><div class="fstat-val" style="color:var(--teal);">13,251</div><div class="fstat-label">Borrowers</div></div>
+    <div class="stat" style="min-width:70px;"><div class="fstat-val" style="color:var(--purple);">0.158</div><div class="fstat-label">PR-AUC</div></div>
+    <div class="stat" style="min-width:70px;"><div class="fstat-val" style="color:var(--amber);">3.4x</div><div class="fstat-label">Alert Lift</div></div>
+  </div>
+</div>
+
+</div><!-- end .page -->
+
+<!-- ══ MODAL OVERLAY ════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+<div class="modal" id="modal">
+  <div class="modal-header">
+    <button class="modal-close" onclick="closeModal()">&#10005;</button>
+    <div class="modal-eyebrow" id="modal-eyebrow">concept</div>
+    <div class="modal-title" id="modal-title">Title</div>
+  </div>
+  <div class="modal-body" id="modal-body"></div>
+</div>
+</div>
+
+<script>
+const concepts = {
+
+bdc:{
+  eyebrow:'Finance · Private Credit',
+  title:'What is a BDC?',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">Plain English</div>
+      <div class="modal-text">A BDC (Business Development Company) is a publicly traded fund that lends money to mid-sized private companies. Think of it as a bank that raises money from stock market investors and lends it to companies too small for Wall Street bonds. There are roughly 139 active BDCs in the US.</div>
+    </div>
+    <div class="modal-analogy">
+      <div class="modal-analogy-label">Why BDCs matter for this project</div>
+      <div class="modal-analogy-text">BDCs must file their entire loan portfolio with the SEC every quarter, including fair values. This creates a unique dataset: you can see what 139 different lenders think a borrower's loan is worth, at the same time. If one lender starts marking down a loan that others haven't, that's an early warning signal.</div>
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Real example from the data</div>
+      <div class="modal-example-text">Pluralsight had loans from 16 different BDCs. When Ares Capital marked it at 0.94 while Blue Owl and Golub still held it at 0.97–1.00, the system flagged a laggard alert. Within two quarters, all 15 lenders had marked it below 0.55.</div>
+    </div>
+  `
+},
+
+sec:{
+  eyebrow:'Data Source · US Government',
+  title:'SEC EDGAR — where the data comes from',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">What it is</div>
+      <div class="modal-text">EDGAR is the SEC's public filing system. Every BDC must file financial statements here, including the Schedule of Investments (SOI) — a table listing every loan they hold, its fair value, and its cost. The SEC's DERA office publishes structured data sets from these filings.</div>
+    </div>
+    <div class="modal-code">
+SEC DERA BDC Data Sets<br/>
+├── soi.tsv    <span class="cm">← one row per loan position</span><br/>
+│   ├── cik, bdc_name<br/>
+│   ├── borrower_name_raw<br/>
+│   ├── fair_value, cost<br/>
+│   ├── investment_type, industry<br/>
+│   └── period_end, filing_date<br/>
+├── 7 quarterly zips (Q2 2023 – Q4 2024)<br/>
+└── 730,310 total rows
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Why this data is special</div>
+      <div class="modal-example-text">Most private credit data is behind expensive paywalls ($50K+/year terminals). SEC filings are free and contain the same fair value marks that analysts pay for. The catch: the data is messy. Column labels are wrong, filings repeat prior periods, and borrower names are inconsistent. That's what the ingestion pipeline fixes.</div>
+    </div>
+  `
+},
+
+soi:{
+  eyebrow:'SEC Filing · Schedule of Investments',
+  title:'What is the SOI?',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">Plain English</div>
+      <div class="modal-text">The Schedule of Investments is a table that every BDC files with the SEC each quarter, listing every loan in their portfolio. Each row is one position: who they lent to, how much it cost, and what they think it's worth now (fair value).</div>
+    </div>
+    <div class="modal-code">
+One row from the SOI might look like:<br/><br/>
+BDC:           Ares Capital (CIK 1287750)<br/>
+Borrower:      Pluralsight Inc<br/>
+Cost:          $15,000,000<br/>
+Fair Value:    $14,100,000<br/>
+Mark:          0.94  <span class="cm">← fair_value / cost</span><br/>
+Type:          First Lien Term Loan<br/>
+Industry:      Software<br/>
+Period:        Q3 2023
+    </div>
+    <div class="modal-analogy">
+      <div class="modal-analogy-label">The mark</div>
+      <div class="modal-analogy-text">Fair value divided by cost is the "mark" — what fraction of the original investment the lender thinks is recoverable. A mark of 1.00 means fully healthy. A mark of 0.80 means the lender thinks 20% of the value is at risk. The gap between what different lenders think is what this whole system watches.</div>
+    </div>
+  `
+},
+
+mark:{
+  eyebrow:'Core Concept · Credit Signal',
+  title:'What is a Mark?',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">Plain English</div>
+      <div class="modal-text">A mark is the ratio of fair value to cost: how many cents on the dollar a lender thinks a loan is worth right now. It's the universal health metric in private credit, because it's what BDCs actually report and what their NAV (net asset value) depends on.</div>
+    </div>
+    <div class="modal-code">
+mark = fair_value / cost<br/><br/>
+1.00 → loan is healthy, full value<br/>
+0.94 → lender sees mild risk (6% haircut)<br/>
+0.80 → meaningful distress threshold<br/>
+0.50 → loan in serious trouble<br/>
+0.05 → effectively written off
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Why mark instead of raw fair value?</div>
+      <div class="modal-example-text">A $100M loan at $95M fair value and a $5M loan at $4.75M fair value are both marked at 0.95. The ratio lets you compare credit quality across positions of completely different sizes. It also matches how the industry actually thinks about credit risk.</div>
+    </div>
+    <div class="modal-warning">
+      <div class="modal-warning-label">Known limitation</div>
+      <div class="modal-warning-text">Cost can change through restructuring, add-on draws, or partial sales. When cost changes, the mark jumps even if the lender's credit view didn't change. The cost stability filter in the laggard alert mitigates this by requiring stable cost before trusting a mark change as a credit signal.</div>
+    </div>
+  `
+},
+
+duckdb:{
+  eyebrow:'Tool · Analytical Database',
+  title:'DuckDB — the embedded warehouse',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">What it does</div>
+      <div class="modal-text">DuckDB is an embedded analytical database — like SQLite but built for aggregation instead of transactions. It runs inside the Python process, needs no server, no config, no port. The entire warehouse is one file: warehouse.duckdb.</div>
+    </div>
+    <div class="modal-code">
+import duckdb<br/>
+con = duckdb.connect("data/processed/warehouse.duckdb")<br/><br/>
+<span class="cm"># aggregation across 161K rows in ~50ms</span><br/>
+con.execute("""<br/>
+&nbsp;&nbsp;SELECT canonical_borrower_id,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;AVG(fair_value/cost) AS avg_mark,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;STDDEV(fair_value/cost) AS mark_dispersion,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;COUNT(DISTINCT cik) AS num_lenders<br/>
+&nbsp;&nbsp;FROM stg_soi_positions_resolved<br/>
+&nbsp;&nbsp;GROUP BY canonical_borrower_id<br/>
+""")
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Why DuckDB over Postgres?</div>
+      <div class="modal-example-text">This is a research project — not a multi-user service. The full pipeline runs in 45 seconds on a laptop. DuckDB gives SQL analytics on 161K rows with zero infrastructure, zero cost, and the warehouse file ships with the repo. If this moved to production with multiple users, Postgres or Snowflake would make sense.</div>
+    </div>
+  `
+},
+
+entity:{
+  eyebrow:'Data Engineering · Name Matching',
+  title:'Entity Resolution — why it matters',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">The Problem</div>
+      <div class="modal-text">Each BDC types borrower names slightly differently. Without entity resolution, the system would see "Acrisure LLC", "ACRISURE, LLC", and "Acrisure Holdings" as three different companies. Cross-lender signals — the core of this project — would be invisible.</div>
+    </div>
+    <div class="modal-code">
+<span class="cm"># Step 1: Normalize</span><br/>
+"Acrisure LLC"       → "acrisure"<br/>
+"ACRISURE, LLC"      → "acrisure"<br/>
+"Acrisure Holdings"  → "acrisure holdings"<br/><br/>
+<span class="cm"># Step 2: MD5 hash of normalized form</span><br/>
+"acrisure" → md5 → "a3f7c2..."  <span class="cm">← canonical ID</span><br/><br/>
+<span class="cm"># Result: 16,717 raw names → 13,251 canonical borrowers</span>
+    </div>
+    <div class="modal-analogy">
+      <div class="modal-analogy-label">Analogy</div>
+      <div class="modal-analogy-text">Imagine 139 friends each wrote down their loans on napkins with slightly different spellings. Entity resolution is the step where you realize that "John Smith", "SMITH, JOHN", and "J. Smith LLC" are all the same person, so you can compare what each friend thinks that person's loan is worth.</div>
+    </div>
+  `
+},
+
+manager:{
+  eyebrow:'Data Engineering · BDC Grouping',
+  title:'Manager-Level Aggregation',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">The Problem</div>
+      <div class="modal-text">A single asset manager often files under multiple CIKs. Blue Owl Capital files as Owl Rock Capital, Owl Rock Core Income, and others. Without grouping, four filings from the same manager look like four independent lenders agreeing — false consensus.</div>
+    </div>
+    <div class="modal-code">
+<span class="cm"># Regex patterns group ~139 CIKs into ~30 managers</span><br/>
+"Owl Rock Capital"        → Blue Owl<br/>
+"Owl Rock Core Income"    → Blue Owl<br/>
+"Blue Owl Capital"        → Blue Owl<br/><br/>
+"Ares Capital"            → Ares<br/>
+"Ares Direct Finance"     → Ares
+    </div>
+    <div class="modal-warning">
+      <div class="modal-warning-label">Why this prevents false signals</div>
+      <div class="modal-warning-text">If one Ares fund marks Pluralsight at 0.94, the other Ares funds will likely do the same (same credit committee). Without manager grouping, this looks like 4 independent lenders all marking at 0.94 — much stronger consensus than it really is.</div>
+    </div>
+  `
+},
+
+crosslender:{
+  eyebrow:'Signal · Core Innovation',
+  title:'Cross-Lender Signals',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">The key idea</div>
+      <div class="modal-text">When 16 lenders each hold a loan to the same borrower, their marks give you a crowd. The average mark across all lenders (consensus) is the #1 predictor of future markdowns — more important than any single lender's own mark.</div>
+    </div>
+    <div class="modal-code">
+<span class="cm"># Cross-lender features computed per position</span><br/>
+num_lenders = 16         <span class="cm">← breadth of coverage</span><br/>
+avg_mark = 0.96          <span class="cm">← consensus view</span><br/>
+mark_dispersion = 0.04   <span class="cm">← disagreement (std dev)</span><br/>
+lender_vs_avg = -0.02    <span class="cm">← this lender is below consensus</span><br/>
+min_mark = 0.89          <span class="cm">← worst view in the group</span>
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Impact on model performance</div>
+      <div class="modal-example-text">Adding cross-lender features improves PR-AUC from 0.146 to 0.158 — a +0.012 gain (90% CI: +0.004 to +0.021). The model learns that when the consensus drops but one lender hasn't moved, that lender is likely to follow. This is the Pluralsight pattern, quantified.</div>
+    </div>
+  `
+},
+
+dispersion:{
+  eyebrow:'Signal · Disagreement Metric',
+  title:'Mark Dispersion — when lenders disagree',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">What it measures</div>
+      <div class="modal-text">Mark dispersion is the standard deviation of marks across all lenders holding the same borrower. Low dispersion means everyone agrees. High dispersion means someone knows something the others don't — or someone hasn't updated yet.</div>
+    </div>
+    <div class="modal-code">
+<span class="cm"># Low dispersion (consensus)</span><br/>
+Borrower X: marks = [0.97, 0.96, 0.98, 0.97]<br/>
+dispersion = 0.008  <span class="cm">← everyone agrees</span><br/><br/>
+<span class="cm"># High dispersion (early warning)</span><br/>
+Pluralsight Q3 2023: [0.94, 0.97, 0.97, 1.00, 0.97, ...]<br/>
+dispersion = 0.042  <span class="cm">← Ares sees something others don't</span>
+    </div>
+    <div class="modal-analogy">
+      <div class="modal-analogy-label">Analogy</div>
+      <div class="modal-analogy-text">If 16 people appraise the same house and 15 say "$500K" while one says "$470K" — that one person might know about a foundation crack the others missed. High mark dispersion is the financial version of that disagreement.</div>
+    </div>
+  `
+},
+
+lightgbm:{
+  eyebrow:'ML · Gradient Boosting',
+  title:'LightGBM — the prediction model',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">What it does</div>
+      <div class="modal-text">LightGBM is a gradient boosting framework that builds decision trees sequentially. Each tree corrects the mistakes of the previous ones. It's the industry standard for tabular data prediction because it handles feature interactions naturally, works with imbalanced classes, and runs fast.</div>
+    </div>
+    <div class="modal-code">
+<span class="cm"># Model configuration</span><br/>
+features: 10 signal columns<br/>
+trees: 58 (early stopping from 200 max)<br/>
+target: marked down 5+ points next quarter<br/>
+base rate: ~3% positive<br/>
+class weight: balanced (upweights rare positives)<br/>
+mode: deterministic (seed=42, num_threads=1)
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Why LightGBM over neural networks?</div>
+      <div class="modal-example-text">With 72,943 training rows and 10 features, this is a small tabular problem. LightGBM consistently beats neural networks on tabular data of this size. It also gives deterministic results (same output on every run), which matters for reproducibility in a research project. Training takes &lt;1 second.</div>
+    </div>
+  `
+},
+
+prauc:{
+  eyebrow:'ML · Evaluation Metric',
+  title:'PR-AUC — why not accuracy?',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">The Problem with Accuracy</div>
+      <div class="modal-text">Only ~3% of loans get marked down 5+ points in any quarter. A model that always predicts "no markdown" would be 97% accurate — but completely useless. PR-AUC (Precision-Recall Area Under Curve) measures how well the model ranks the rare positives above the negatives.</div>
+    </div>
+    <div class="modal-code">
+Precision: of loans I flagged, how many were actually marked down?<br/>
+Recall:    of loans that were marked down, how many did I flag?<br/><br/>
+PR-AUC:    area under the precision-recall curve<br/>
+           0.03 = random (matches base rate)<br/>
+           0.158 = our model (5.3x better than random)<br/>
+           1.0 = perfect (never misses, never false alarms)
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">In practice</div>
+      <div class="modal-example-text">Precision@50 = 0.94 means: of the 50 loans the model ranked highest risk, 47 of them were actually marked down. For an analyst reviewing a watchlist, this means almost every name they look at is a genuine concern — not a false alarm.</div>
+    </div>
+  `
+},
+
+backtest:{
+  eyebrow:'ML · Validation Method',
+  title:'Rolling Backtest — honest evaluation',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">Why not a random train/test split?</div>
+      <div class="modal-text">Credit data is time-ordered. A random split would let the model train on Q3 2024 data and predict Q1 2024 — using the future to predict the past. The rolling backtest trains only on earlier quarters and predicts the next one, sliding forward through time.</div>
+    </div>
+    <div class="modal-code">
+Quarter 1: train on [Q4 2022]           → predict Q1 2023<br/>
+Quarter 2: train on [Q4 2022, Q1 2023]  → predict Q2 2023<br/>
+Quarter 3: train on [..., Q2 2023]      → predict Q3 2023<br/>
+Quarter 4: train on [..., Q3 2023]      → predict Q4 2023<br/>
+Quarter 5: train on [..., Q4 2023]      → predict Q1 2024<br/><br/>
+<span class="cm">Every prediction is out-of-sample. The model never sees the future.</span>
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Why this matters</div>
+      <div class="modal-example-text">The main model reports PR-AUC = 0.758 on a time-split validation set. But that evaluation includes already-distressed loans in the target. The rolling backtest scores only currently-healthy loans (mark >= 0.80) and gets 0.158 — the honest number. Every result in this project comes from the rolling backtest.</div>
+    </div>
+  `
+},
+
+laggard:{
+  eyebrow:'Alert · Rule-Based Signal',
+  title:'The Laggard Alert',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">The idea in one sentence</div>
+      <div class="modal-text">If a cost-stable manager just cut a borrower's mark by 4+ points this quarter, and your mark barely moved, you may be lagging behind a credit event that the other manager already priced in.</div>
+    </div>
+    <div class="modal-code">
+Alert fires when ALL three conditions are true:<br/><br/>
+1. Another manager cut this borrower by &ge; 4 points this quarter<br/>
+2. That manager's cost is stable (0.67x–1.5x of prior quarter)<br/>
+3. This lender's mark moved &lt; 2 points<br/><br/>
+<span class="cm">Threshold chosen on pre-2024 data, Pluralsight excluded</span><br/>
+<span class="cm">Validated on 2024+ data (out of sample)</span>
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Pluralsight Q3 2023</div>
+      <div class="modal-example-text">Ares cut Pluralsight to 0.94 (down from ~1.00). Blue Owl, Golub, and 12 others hadn't moved. 14 laggard alerts fired. By Q1 2024, 10 of those 14 lenders were indeed marked down 5+ points. The alert gave a one-quarter lead time.</div>
+    </div>
+  `
+},
+
+coststable:{
+  eyebrow:'Alert · Filter Logic',
+  title:'Cost Stability Filter',
+  body:`
+    <div class="modal-section">
+      <div class="modal-section-label">The Problem It Solves</div>
+      <div class="modal-text">When a manager sells part of a loan position, their total cost drops. They might also adjust the mark to reflect the exit price. This looks like a mark cut, but it's a portfolio reshuffle — not a credit call. Without filtering for cost stability, the alert would fire on trading activity, not credit events.</div>
+    </div>
+    <div class="modal-code">
+cost_ratio = manager_cost_this_q / manager_cost_prior_q<br/><br/>
+<span class="cm">Cost stable: 0.67 &le; cost_ratio &le; 1.50</span><br/>
+<span class="cm">Cost unstable: manager bought/sold significantly</span><br/><br/>
+Stable manager cuts mark    → trusted signal → alert fires<br/>
+Unstable manager cuts mark  → may be trading → needs_review flag
+    </div>
+    <div class="modal-example">
+      <div class="modal-example-label">Impact on alert quality</div>
+      <div class="modal-example-text">Adding the cost stability filter made the signal clean enough to lower the threshold from 7 points to 4 points. This tripled the number of alerts (from ~80 to ~235) while keeping the hit rate above 13%. More alerts with the same precision means more chances to catch a real credit event early.</div>
+    </div>
+  `
+}
+
+};
+
+function openModal(key) {
+  const c = concepts[key];
+  if(!c) return;
+  document.getElementById('modal-eyebrow').textContent = c.eyebrow;
+  document.getElementById('modal-title').textContent = c.title;
+  document.getElementById('modal-body').innerHTML = c.body;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeModalOutside(e) {
+  if(e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
